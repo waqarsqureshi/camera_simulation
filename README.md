@@ -1,5 +1,5 @@
-# learnopengl.com code repository
-Contains code samples for all tutorials of [https://learnopengl.com](https://learnopengl.com). 
+# A copy modified from learnopengl.com
+Modified sample code from learnopengl to simulate a camera movement around a 3D Object. The rendering is captured and images through rendering is captured by opencv to process frames. The dlib library is used for face landmarks detection.
 
 ## Windows building
 All relevant libraries are found in /libs and all DLLs found in /dlls (pre-)compiled for Windows. 
@@ -10,7 +10,7 @@ Keep in mind the supplied libraries were generated with a specific compiler vers
 
 ## Linux building
 First make sure you have CMake, Git, and GCC by typing as root (sudo) `apt-get install g++ cmake git` and then get the required packages:
-Using root (sudo) and type `apt-get install libsoil-dev libglm-dev libassimp-dev libglew-dev libglfw3-dev libxinerama-dev libxcursor-dev  libxi-dev` .
+Using root (sudo) and type `apt-get install libsoil-dev libglm-dev libassimp-dev libglew-dev libglfw3-dev libxinerama-dev libxcursor-dev  libxi-dev libopencv-dev python3-opencv`
 Next, run CMake (preferably CMake-gui). The source directory is LearnOpenGL and specify the build directory as LearnOpenGL/build. Creating the build directory within LearnOpenGL is important for linking to the resource files (it also will be ignored by Git). Hit configure and specify your compiler files (Unix Makefiles are recommended), resolve any missing directories or libraries, and then hit generate. Navigate to the build directory (`cd LearnOpenGL/build`) and type `make` in the terminal. This should generate the executables in the respective chapter folders.
 
 Note that CodeBlocks or other IDEs may have issues running the programs due to problems finding the shader and resource files, however it should still be able to generate the exectuables. To work around this problem it is possible to set an environment variable to tell the tutorials where the resource files can be found. The environment variable is named LOGL_ROOT_PATH and may be set to the path to the root of the LearnOpenGL directory tree. For example:
@@ -28,8 +28,3 @@ cd build
 cmake ../.
 make -j8
 ```
-
-## Glitter
-Polytonic created a project called [Glitter](https://github.com/Polytonic/Glitter) that is a dead-simple boilerplate for OpenGL. 
-Everything you need to run a single LearnOpenGL Project (including all libraries) and just that; nothing more. 
-Perfect if you want to follow along with the tutorials, without the hassle of having to manually compile and link all third party libraries!
