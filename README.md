@@ -1,4 +1,5 @@
-# A code for simulating aerial camera movements around a 3D object. The reference code is taken from learnopengl.com
+# camera_simulation opengl opencv dlib
+A code for simulating aerial camera movements around a 3D object. The reference code is taken from learnopengl.com
 Modified sample code from learnopengl to simulate a camera movement around a 3D Object. The rendering is captured and images through rendering is captured by opencv to process frames. The dlib library is used for face landmarks detection.
 
 ## Windows building
