@@ -17,11 +17,23 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
+// dlib library
+#include <dlib/opencv.h>
+#include <dlib/image_processing/frontal_face_detector.h>
+#include <dlib/image_processing/render_face_detections.h>
+#include <dlib/image_processing.h>
+#include <dlib/gui_widgets.h>
 //
 
 #include <iostream>
 #include <math.h>
 #include <stdlib.h>
+
+using namespace dlib;
+//using namespace std;
+//using namespace cv;
+//using namespace glm;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -29,8 +41,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 
 // settings
-const unsigned int SCR_WIDTH = 640;
-const unsigned int SCR_HEIGHT = 480;
+const unsigned int SCR_WIDTH = 1280;
+const unsigned int SCR_HEIGHT = 720;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -42,12 +54,12 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// lighting
-//glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
 //opencv declaration
 cv::Mat img(SCR_HEIGHT, SCR_WIDTH, CV_8UC3);
 cv::Mat continuousRGBA(SCR_HEIGHT, SCR_WIDTH, CV_8UC4);
+
+
 
 int main()
 {
@@ -64,7 +76,7 @@ int main()
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Camera Simulation", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -94,22 +106,46 @@ int main()
     glEnable(GL_LIGHT0);    // Enable lighting
     // build and compile shaders
     // -------------------------
-    Shader ourShader("2.camera_simulation.vs", "2.camera_simulation.fs");
+    Shader ourShader("1.model_loading.vs", "1.model_loading.fs");
 
     // load models
     // -----------
-    Model ourModel(FileSystem::getPath("resources/objects/human1/CMan0203.obj"));
+    Model ourModel(FileSystem::getPath("resources/objects/human2/CMan0206.obj"));
+//    Model ourModel(FileSystem::getPath("resources/objects/random/apple/apple.obj"));
 
+//-------------------------------------------------------
+//============dlib part===================================
+
+   // image_window win;
+    // Load face detection and pose estimation models.
+  //  frontal_face_detector detector = get_frontal_face_detector();
+  //  shape_predictor pose_model;
+  //  deserialize("shape_predictor_68_face_landmarks.dat") >> pose_model;
+//--------------------------------------------------------
+
+//=========================================================
     // intialize the gif writer
+
     struct GifWriter writer;
     const char* filename = "output.gif";
-    GifBegin(&writer, filename, SCR_WIDTH,SCR_HEIGHT,0);
+    GifBegin(&writer, filename, SCR_WIDTH, SCR_HEIGHT,0);
+
+//=========================================================
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+//=========================================================
 
+//====================================================
+        // set rotation
+	float cameraRadius = 250.0f;
+	float Yaw = 0.0f;
+	float Pitch = 0.0f;
+	float modelAngleY = 0;
+//====================================================
     // render loop
-    // -----------
-    while (!glfwWindowShouldClose(window))
+//---------------------------------------------------------
+    int debug=0;
+    while (!glfwWindowShouldClose(window))//|!win.is_closed())
     {
         // per-frame time logic
         // --------------------
@@ -130,17 +166,20 @@ int main()
         ourShader.use();
 
         // set rotation
-	float radius = 30.0f;
-        float camX   = abs(sin(glfwGetTime())) * radius;
-        float camZ   = abs(cos(glfwGetTime())) * radius;
-	glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f);
-	glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-	glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
+        float camX   = abs(sin(glfwGetTime())) * cameraRadius;
+        float camZ   = abs(cos(glfwGetTime())) * cameraRadius;
+     
         // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 500.0f);
         glm::mat4 view = camera.GetViewMatrix();
-	//waqar
-	view = glm::lookAt(glm::vec3(camX, 10.0f, camZ), glm::vec3(0.0f, 10.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+//=====================================================
+// following three lines define the camera movement w.r.t the model in spherical coordinate system
+	//waqar lookAt function input =  camera position, target, and up vector
+	//view = glm::lookAt(glm::vec3(camX, 100.0f, camZ), glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	view = glm::lookAt(glm::vec3(0, 100.0f+100.0f*abs(sin(glm::radians(Pitch))), cameraRadius), glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	//view = glm::lookAt(glm::vec3(0, 100.0f, radius+radius*abs(sin(glfwGetTime()))), glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	Pitch++;
+//====================================================	
 	//waqar        
 	ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
@@ -148,10 +187,13 @@ int main()
         // render the loaded model
         glm::mat4 model;
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));	// it's a bit too big for our scene, so scale it down
+	model = glm::rotate(model, glm::radians(modelAngleY), glm::vec3(0.0f, 1.0f, 0.0f)); // rotate
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
         ourModel.Draw(ourShader);
 //=============================================
+// This part of the code graps the view to pixel to be converted to opencv mat
+//----------------------------------------------------------------------------
 	//use fast 4-byte alignment (default anyway) if possible
 	glPixelStorei(GL_PACK_ALIGNMENT, (img.step & 3) ? 1 : 4);
 
@@ -159,8 +201,31 @@ int main()
 	glPixelStorei(GL_PACK_ROW_LENGTH, img.step/img.elemSize());
 	glReadPixels(0, 0, img.cols, img.rows, GL_BGR, GL_UNSIGNED_BYTE, img.data);
 	cv::flip(img, img, 0);
+//------------------------------------------------------------------------------
+// Turn OpenCV's Mat into something dlib can deal with.  Note that this just
+            // wraps the Mat object, it doesn't copy anything.  So cimg is only valid as
+            // long as temp is valid.  Also don't do anything to temp that would cause it
+            // to reallocate the memory which stores the image as that will make cimg
+            // contain dangling pointers.  This basically means you shouldn't modify temp
+            // while using cimg.
+            //cv_image<bgr_pixel> cimg(img);
 
-	//cv::imwrite(FileSystem::getPath("resources/objects/human1/img.png"),img); 
+            // Detect faces 
+            //std::vector<rectangle> faces = detector(cimg);
+            // Find the pose of each face.
+            //std::vector<full_object_detection> shapes;
+            //for (unsigned long i = 0; i < faces.size(); ++i)
+            //    shapes.push_back(pose_model(cimg, faces[i]));
+
+            // Display it all on the screen
+            //win.clear_overlay();
+            //win.set_image(cimg);
+            //win.add_overlay(render_face_detections(shapes));
+
+//--------------------------------------------	
+	if(debug==0)
+	cv::imwrite(FileSystem::getPath("resources/objects/human2/img.png"),img); 	
+	debug++;
 	// debug imshow
 	//cv::imshow("Pose estimation", img);
         //unsigned char key = cv::waitKey(1);
@@ -168,11 +233,14 @@ int main()
         //    {
         //    break;
         //    }
+//--------------------------------------------
 
+
+	// this part is generating the gif file
 	cv::cvtColor(img, continuousRGBA, CV_BGR2RGBA, 4);
-	std::cout<<"test data write"<<std::endl;
-        GifWriteFrame(&writer, continuousRGBA.data,SCR_WIDTH,SCR_HEIGHT, 0);
-	std::cout<<"write done"<<std::endl;
+        GifWriteFrame(&writer, continuousRGBA.data, SCR_WIDTH,SCR_HEIGHT, 0);
+
+
 //==============================================
 
 
@@ -182,9 +250,13 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
+//--------------------
     // end gif writer
+
     GifEnd(&writer);
+
+
+//--------------------
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
