@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
 // learning learnopengl header files
 #include <learnopengl/filesystem.h>
 #include <learnopengl/shader_m.h>
@@ -29,6 +30,7 @@
 #include <iostream>
 #include <math.h>
 #include <stdlib.h>
+#include <iomanip>
 
 using namespace dlib;
 //using namespace std;
@@ -39,13 +41,15 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
+void showReferenceAxis(void);
+void drawScene();
 
 // settings
-const unsigned int SCR_WIDTH = 1280;
-const unsigned int SCR_HEIGHT = 720;
+const unsigned int SCR_WIDTH = 640;
+const unsigned int SCR_HEIGHT = 480;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 100.0f, 0.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -58,8 +62,6 @@ float lastFrame = 0.0f;
 //opencv declaration
 cv::Mat img(SCR_HEIGHT, SCR_WIDTH, CV_8UC3);
 cv::Mat continuousRGBA(SCR_HEIGHT, SCR_WIDTH, CV_8UC4);
-
-
 
 int main()
 {
@@ -112,7 +114,7 @@ int main()
     // -----------
     Model ourModel(FileSystem::getPath("resources/objects/human2/CMan0206.obj"));
 //    Model ourModel(FileSystem::getPath("resources/objects/random/apple/apple.obj"));
-
+//    Model ourModel(FileSystem::getPath("resources/objects/human3/full_body.obj"));
 //-------------------------------------------------------
 //============dlib part===================================
 
@@ -129,19 +131,12 @@ int main()
     struct GifWriter writer;
     const char* filename = "output.gif";
     GifBegin(&writer, filename, SCR_WIDTH, SCR_HEIGHT,0);
-
 //=========================================================
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 //=========================================================
 
-//====================================================
-        // set rotation
-	float cameraRadius = 250.0f;
-	float Yaw = 0.0f;
-	float Pitch = 0.0f;
-	float modelAngleY = 0;
-//====================================================
+
     // render loop
 //---------------------------------------------------------
     int debug=0;
@@ -161,34 +156,28 @@ int main()
         // ------
         glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
 
         // don't forget to enable shader before setting uniforms
         ourShader.use();
 
-        // set rotation
-        float camX   = abs(sin(glfwGetTime())) * cameraRadius;
-        float camZ   = abs(cos(glfwGetTime())) * cameraRadius;
-     
-        // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 500.0f);
+        // view/projection transformations fovy, aspect ratio, znear and z far
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 300.0f);
         glm::mat4 view = camera.GetViewMatrix();
-//=====================================================
-// following three lines define the camera movement w.r.t the model in spherical coordinate system
-	//waqar lookAt function input =  camera position, target, and up vector
-	//view = glm::lookAt(glm::vec3(camX, 100.0f, camZ), glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	view = glm::lookAt(glm::vec3(0, 100.0f+100.0f*abs(sin(glm::radians(Pitch))), cameraRadius), glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	//view = glm::lookAt(glm::vec3(0, 100.0f, radius+radius*abs(sin(glfwGetTime()))), glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	Pitch++;
-//====================================================	
+        cout<<'\r'<<" x "<<std::setw(10)<< std::setfill('0')<<camera.Position.x<<" y "<< std::setw(10)<<camera.Position.y;
+        cout<<':'<< std::setw(10)<<camera.Position.z;
+        cout<<" z "<< std::setw(10)<<camera.Zoom;
+        cout<<" p "<< std::setw(10)<<camera.Pitch<<" y "<< std::setw(10)<<camera.Yaw<<std::flush;
+
 	//waqar        
 	ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
         // render the loaded model
         glm::mat4 model;
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-	model = glm::rotate(model, glm::radians(modelAngleY), glm::vec3(0.0f, 1.0f, 0.0f)); // rotate
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 200.0f)); // translate it down so it's at the center of the scene
+	model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // rotate
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f,1.0f));	// it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
         ourModel.Draw(ourShader);
 //=============================================
@@ -261,12 +250,13 @@ int main()
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
     glfwTerminate();
+    cout<<"\n"<<endl;
     return 0;
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
+void processInput(GLFWwindow *window) //waqar - not using delta time anymore
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -279,6 +269,18 @@ void processInput(GLFWwindow *window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+    if(glfwGetKey(window,GLFW_KEY_UP) ==GLFW_PRESS)
+        camera.ProcessKeyboard(UP_ARROW, deltaTime);
+    if(glfwGetKey(window,GLFW_KEY_DOWN) ==GLFW_PRESS)
+        camera.ProcessKeyboard(DOWN_ARROW, deltaTime);
+    if(glfwGetKey(window,GLFW_KEY_RIGHT) ==GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT_ARROW, deltaTime);
+    if(glfwGetKey(window,GLFW_KEY_LEFT) ==GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT_ARROW, deltaTime);//GLFW_KEY_SPACE  
+    if(glfwGetKey(window,GLFW_KEY_U) ==GLFW_PRESS)
+        camera.ProcessKeyboard(UP, deltaTime);
+    if(glfwGetKey(window,GLFW_KEY_J) ==GLFW_PRESS)
+        camera.ProcessKeyboard(DOWN, deltaTime);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -316,3 +318,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(yoffset);
 }
+
+
+
