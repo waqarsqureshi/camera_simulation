@@ -1,3 +1,11 @@
+/*
+This is a camera simuation program editing from the example of load model 
+in Learnopengl.com
+The camera is on the origin looking towards in the positive z direction
+ i.e. with a yaw of +90 degree. The model is loaded at z=200 at with x,y=0 
+ looking with a rotation of 180 degree
+*/
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -10,14 +18,9 @@
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
 
-//header from https://github.com/ginsweater/gif-h
-#include <learnopengl/gif.h>
-
 //opencv
 
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include<opencv2/opencv.hpp>
 
 // dlib library
 #include <dlib/opencv.h>
@@ -37,12 +40,6 @@ using namespace dlib;
 //using namespace cv;
 //using namespace glm;
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
-void showReferenceAxis(void);
-void drawScene();
 
 // settings
 const unsigned int SCR_WIDTH = 640;
@@ -57,11 +54,18 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-
+int capture=0;
+int i=0;
 
 //opencv declaration
 cv::Mat img(SCR_HEIGHT, SCR_WIDTH, CV_8UC3);
-cv::Mat continuousRGBA(SCR_HEIGHT, SCR_WIDTH, CV_8UC4);
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void processInput(GLFWwindow *window);
+void image_write(cv::Mat img, Camera camera,int i);
+void image_show(cv::Mat img, Camera camera, int i);
 
 int main()
 {
@@ -113,7 +117,6 @@ int main()
     // load models
     // -----------
     Model ourModel(FileSystem::getPath("resources/objects/human2/CMan0206.obj"));
-//    Model ourModel(FileSystem::getPath("resources/objects/random/apple/apple.obj"));
 //    Model ourModel(FileSystem::getPath("resources/objects/human3/full_body.obj"));
 //-------------------------------------------------------
 //============dlib part===================================
@@ -126,12 +129,6 @@ int main()
 //--------------------------------------------------------
 
 //=========================================================
-    // intialize the gif writer
-
-    struct GifWriter writer;
-    const char* filename = "output.gif";
-    GifBegin(&writer, filename, SCR_WIDTH, SCR_HEIGHT,0);
-//=========================================================
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 //=========================================================
@@ -139,7 +136,7 @@ int main()
 
     // render loop
 //---------------------------------------------------------
-    int debug=0;
+   
     while (!glfwWindowShouldClose(window))//|!win.is_closed())
     {
         // per-frame time logic
@@ -212,23 +209,16 @@ int main()
             //win.add_overlay(render_face_detections(shapes));
 
 //--------------------------------------------	
-	if(debug==0)
-	cv::imwrite(FileSystem::getPath("resources/objects/human2/img.png"),img); 	
-	debug++;
-	// debug imshow
-	//cv::imshow("Pose estimation", img);
-        //unsigned char key = cv::waitKey(1);
-        //if (key == 27)
-        //    {
-        //    break;
-        //    }
+	if(capture==1)
+	{
+	   image_write(img,camera,i);
+	   capture =0;
+	   i++;
+	} 
+	//image_show(img,camera,debug);	
+
+        
 //--------------------------------------------
-
-
-	// this part is generating the gif file
-	cv::cvtColor(img, continuousRGBA, CV_BGR2RGBA, 4);
-        GifWriteFrame(&writer, continuousRGBA.data, SCR_WIDTH,SCR_HEIGHT, 0);
-
 
 //==============================================
 
@@ -239,13 +229,6 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-//--------------------
-    // end gif writer
-
-    GifEnd(&writer);
-
-
-//--------------------
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
@@ -281,6 +264,8 @@ void processInput(GLFWwindow *window) //waqar - not using delta time anymore
         camera.ProcessKeyboard(UP, deltaTime);
     if(glfwGetKey(window,GLFW_KEY_J) ==GLFW_PRESS)
         camera.ProcessKeyboard(DOWN, deltaTime);
+    if(glfwGetKey(window,GLFW_KEY_C) ==GLFW_PRESS)
+        capture=1;
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -319,5 +304,33 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     camera.ProcessMouseScroll(yoffset);
 }
 
+// This is a function to write images from the viewport
+void image_write(cv::Mat img, Camera camera,int i)
+{
+   string imagePath, imageName, saveImage, info;
+   imagePath = FileSystem::getPath("resources/objects/human2/images/");
+   imageName = "Image_"+std::to_string(i)+".jpg";
+   info = std::to_string(camera.Position.x)+'_'+ std::to_string(camera.Position.y)+'_'+std::to_string(camera.Position.z)+'_'+std::to_string(camera.Pitch)+'_'+std::to_string(camera.Yaw)+'_'+std::to_string(camera.Zoom);
+   saveImage = imagePath+imageName;
+   putText( img, info,cv::Point( img.cols/8, img.rows/8),3, 0.3, cv::Scalar(255, 0, 255) );
+   cv::imwrite(saveImage,img);
+}
+
+//====================================================
+// This is a fuction to show images from the viewport
+void image_show(cv::Mat img, Camera camera, int i)
+{
+   string imagePath, imageName, saveImage;
+   imageName = "Image_"+ std::to_string(camera.Position.x)+'_'+ std::to_string(camera.Position.y)+'_'+std::to_string(camera.Position.z)+'_'+std::to_string(camera.Pitch)+'_'+std::to_string(camera.Yaw)+'_'+std::to_string(camera.Zoom)+".jpg";
+   putText( img, imageName,cv::Point( img.cols/8, img.rows/8),3, 0.3, cv::Scalar(255, 0, 255) );
+   cv::imshow("Image capture",img);
+   unsigned char key = cv::waitKey(1);
+      if (key == 27)
+      {
+      //
+      }
+}
+
+//===================================================
 
 
