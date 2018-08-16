@@ -320,12 +320,18 @@ void image_write(cv::Mat img, Camera camera,int i)
 {
    string imagePath, imageName, saveImage, info;
    stringstream tempStream;
+   stringstream infoStream;
+   std::fixed;
+   std::setprecision(1);
    imagePath = FileSystem::getPath("resources/objects/human1/images/");
    tempStream<<setfill('0')<<setw(4)<<i;
    imageName = "Image_"+tempStream.str()+".jpg";
-   info = std::to_string(camera.Position.x)+'_'+ std::to_string(camera.Position.y)+'_'+std::to_string(camera.Position.z)+'_'+std::to_string(camera.Pitch)+'_'+std::to_string(camera.Yaw)+'_'+std::to_string(camera.Zoom);
+   
+   infoStream << "xyzpyz "<<camera.Position.x<<'_'<<camera.Position.y<<'_'<<camera.Position.z<<'_'<<camera.Pitch<<'_'<<camera.Yaw<<'_'<<camera.Zoom;
+   info = infoStream.str();
+  // info = std::to_string(camera.Position.x)+'_'+ std::to_string(camera.Position.y)+'_'+std::to_string(camera.Position.z)+'_'+std::to_string(camera.Pitch)+'_'+std::to_string(camera.Yaw)+'_'+std::to_string(camera.Zoom);
    saveImage = imagePath+imageName;
-   putText( img, info,cv::Point( img.cols/8, img.rows/8),3, 0.3, cv::Scalar(255, 0, 255) );
+   putText( img, info,cv::Point( img.cols/8, img.rows/8),2, 0.5, cv::Scalar(255, 0, 255) );
    cv::imwrite(saveImage,img);
 }
 
@@ -334,9 +340,13 @@ void image_write(cv::Mat img, Camera camera,int i)
 void image_show(cv::Mat img, Camera camera, int i)
 {
    string imagePath, imageName, saveImage;
+   stringstream imageStream;
    std::fixed;
    std::setprecision(1);
-   imageName = "Image_"+ std::to_string(camera.Position.x)+'_'+ std::to_string(camera.Position.y)+'_'+std::to_string(camera.Position.z)+'_'+std::to_string(camera.Pitch)+'_'+std::to_string(camera.Yaw)+'_'+std::to_string(camera.Zoom)+".jpg";
+   imageStream << "Image_"<<camera.Position.x<<'_'<<camera.Position.y<<'_'<<camera.Position.z<<'_'<<camera.Pitch<<'_'<<camera.Yaw<<'_'<<camera.Zoom<<".jpg";
+   //imageName = "Image_"+ std::to_string(camera.Position.x)+'_'+ std::to_string(camera.Position.y)+'_'+std::to_string(camera.Position.z)+'_'+std::to_string(camera.Pitch)+'_'+std::to_string(camera.Yaw)+'_'+std::to_string(camera.Zoom)+".jpg";
+   
+   imageName = imageStream.str();
    putText( img, imageName,cv::Point( img.cols/8, img.rows/8),3, 0.3, cv::Scalar(255, 0, 255) );
    cv::imshow("Image capture",img);
    unsigned char key = cv::waitKey(1);
