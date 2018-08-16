@@ -15,8 +15,6 @@ endif(WIN32)
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 
-add_subdirectory(/home/user/dlib/dlib dlib_build)
-
 list(APPEND CMAKE_CXX_FLAGS "-std=c++11")
 
 # find the required packages
@@ -108,7 +106,7 @@ foreach(CHAPTER ${CHAPTERS})
         )
         set(NAME "${CHAPTER}__${DEMO}")
         add_executable(${NAME} ${SOURCE})
-        target_link_libraries(${NAME} dlib::dlib ${LIBS})
+        target_link_libraries(${NAME} ${LIBS})
         if(WIN32)
             set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CHAPTER}")
         elseif(UNIX AND NOT APPLE)

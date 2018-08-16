@@ -14,39 +14,31 @@ The camera is on the origin looking towards in the positive z direction
 
 // learning learnopengl header files
 #include <learnopengl/filesystem.h>
-#include <learnopengl/shader_m.h>
+#include <learnopengl/shader.h>
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
-
+#include <learnopengl/vertexP.h>
 //opencv
 
 #include<opencv2/opencv.hpp>
 
-// dlib library
-#include <dlib/opencv.h>
-#include <dlib/image_processing/frontal_face_detector.h>
-#include <dlib/image_processing/render_face_detections.h>
-#include <dlib/image_processing.h>
-#include <dlib/gui_widgets.h>
-//
 
 #include <iostream>
 #include <math.h>
 #include <stdlib.h>
 #include <iomanip>
-
-using namespace dlib;
+#include <sstream>  
 //using namespace std;
 //using namespace cv;
 //using namespace glm;
 
 
 // settings
-const unsigned int SCR_WIDTH = 640;
-const unsigned int SCR_HEIGHT = 480;
+const unsigned int SCR_WIDTH = 640;//camera width and height
+const unsigned int SCR_HEIGHT = 480;// camera width an height
 
 // camera
-Camera camera(glm::vec3(0.0f, 100.0f, 0.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));// initial camera position in x y z direction
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -60,15 +52,20 @@ int i=0;
 //opencv declaration
 cv::Mat img(SCR_HEIGHT, SCR_WIDTH, CV_8UC3);
 
+//=========================================
+// some helper functions
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 void image_write(cv::Mat img, Camera camera,int i);
 void image_show(cv::Mat img, Camera camera, int i);
+void draw_lines();
+//=================================================
 
 int main()
 {
+
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
@@ -95,7 +92,7 @@ int main()
     glfwSetScrollCallback(window, scroll_callback);
 
     // tell GLFW to capture our mouse
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR,GLFW_CURSOR_NORMAL);// GLFW_CURSOR_DISABLED); normal mouse is more suitable for me.
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -112,31 +109,47 @@ int main()
     glEnable(GL_LIGHT0);    // Enable lighting
     // build and compile shaders
     // -------------------------
-    Shader ourShader("1.model_loading.vs", "1.model_loading.fs");
-
+    Shader ourShader("camera_simulation.vs", "camera_simulation.fs");
+    //Shader BboxShader("camera_simulation_2.vs", "camera_simulation_2.fs");//
+    Shader rectShader("camera_simulation_3.vs", "camera_simulation_3.fs");//
     // load models
     // -----------
-    Model ourModel(FileSystem::getPath("resources/objects/human2/CMan0206.obj"));
-//    Model ourModel(FileSystem::getPath("resources/objects/human3/full_body.obj"));
-//-------------------------------------------------------
-//============dlib part===================================
-
-   // image_window win;
-    // Load face detection and pose estimation models.
-  //  frontal_face_detector detector = get_frontal_face_detector();
-  //  shape_predictor pose_model;
-  //  deserialize("shape_predictor_68_face_landmarks.dat") >> pose_model;
-//--------------------------------------------------------
-
+    //Model ourModel(FileSystem::getPath("resources/objects/human2/CMan0206.obj"));
+    Model ourModel(FileSystem::getPath("resources/objects/human3/full_body.obj"));
+    BBox bbox; // make a struct to contain bounding box (BBox is a structure defined in model.h)
+    initbbox(&bbox);  
+    //initialize primitive vertices and color to draw a square shape
+    //vector<glm::vec3> vPosition;
+    glm::vec4 vColor = glm::vec4(0.2f,0.2f,0.2f,1.0f);
+    // get the bounding box
+    update_bbox(&ourModel,&bbox);
+    glm::vec3 size = glm::vec3(bbox.maxx-bbox.minx, bbox.maxy-bbox.miny, bbox.maxz-bbox.minz);// size of the box
+    glm::vec3 center = glm::vec3((bbox.maxx+bbox.minx)/2, (bbox.maxy+bbox.miny)/2, (bbox.maxz+bbox.minz)/2); // center of the box
+    std::cout<<"bbox = "<<bbox.minx<<" "<<bbox.miny<<" "<<bbox.minz<<" "<<bbox.maxx<<" "<<bbox.maxy<<" "<<bbox.maxz<<" "<<std::endl;
+    std::cout<<"center = "<<center.x<<" "<<center.y<<" "<<center.z<<std::flush;
+    //vPosition.push_back(glm::vec3(bbox.minx,bbox.miny,0));
+    //vPosition.push_back(glm::vec3(bbox.minx,bbox.maxy,0));
+    //vPosition.push_back(glm::vec3(bbox.minx,bbox.maxy,0));
+    //vPosition.push_back(glm::vec3(bbox.maxx,bbox.maxy,0));
+    //vPosition.push_back(glm::vec3(bbox.minx,bbox.miny,0));
+    //vPosition.push_back(glm::vec3(0,0 ,0));
+    //vPosition.push_back(glm::vec3(0,988 ,0));
+    //vPosition.push_back(glm::vec3(1,0,0));
+    //vPosition.push_back(glm::vec3(1,988,0));
+    //vertexP rect(vPosition,vColor);           
+//============================================================================================
+    // upoad a unity cube to draw a bounding box
+    Model cube(FileSystem::getPath("resources/objects/human3/bbox2.obj"));
 //=========================================================
-    // draw in wireframe
+    // draw in model in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glEnable(GL_POLYGON_OFFSET_FILL);
+    // enable for better view of cube
+    //glPolygonOffset(1, 0);
+    glLineWidth(10);
 //=========================================================
 
-
-    // render loop
-//---------------------------------------------------------
-   
+// render loop   
     while (!glfwWindowShouldClose(window))//|!win.is_closed())
     {
         // per-frame time logic
@@ -149,34 +162,63 @@ int main()
         // -----
         processInput(window);
 
-        // render
+        // render the background as white
         // ------
         glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
-
-        // don't forget to enable shader before setting uniforms
+//============================================================================================
+        // don't forget to enable shader 1
         ourShader.use();
 
+        // get and set tranform for the loaded model
         // view/projection transformations fovy, aspect ratio, znear and z far
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 300.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        cout<<'\r'<<" x "<<std::setw(10)<< std::setfill('0')<<camera.Position.x<<" y "<< std::setw(10)<<camera.Position.y;
-        cout<<':'<< std::setw(10)<<camera.Position.z;
-        cout<<" z "<< std::setw(10)<<camera.Zoom;
-        cout<<" p "<< std::setw(10)<<camera.Pitch<<" y "<< std::setw(10)<<camera.Yaw<<std::flush;
-
-	//waqar        
-	ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
-
-        // render the loaded model
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 400.0f);
         glm::mat4 model;
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 200.0f)); // translate it down so it's at the center of the scene
-	model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // rotate
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f,1.0f));	// it's a bit too big for our scene, so scale it down
+        model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // rotate
+        model = glm::scale(model, glm::vec3(0.1f, 0.1f,0.1f));	// it's a bit too big for our scene, so scale it down        
         ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
+//============================================================================================
+        // set the view matrix for model and the cube
+        glm::mat4 view = camera.GetViewMatrix();
+//=====================================================================================
+        // print camera position
+        cout<<'\r'<<" x "<<std::setw(5)<< std::setfill('0')<<camera.Position.x<<" y "<< std::setw(5)<<camera.Position.y;
+        cout<<" z "<< std::setw(5)<<camera.Position.z;
+        cout<<" zoom "<< std::setw(5)<<camera.Zoom;
+        cout<<" p "<< std::setw(5)<<camera.Pitch<<" y "<< std::setw(5)<<camera.Yaw<<std::flush;
+//=================================================================================================
+	//set projection and view of the model       
+	ourShader.setMat4("projection", projection);
+        ourShader.setMat4("view", view);
+        //ourModel.Draw(ourShader);
+//================================================================================================        
+       /*
+       // draw cube in wireframe
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        
+        BboxShader.use()// don't forget to enable shader 2
+        glm::mat4 transform;
+        //transform = glm::translate(transform, center); //
+        transform = glm::translate(transform, glm::vec3(0.0f, 0.0f, 200.0f));
+        //transform = glm::scale(transform, size);
+        transform = glm::rotate(transform, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // rotate
+        transform = glm::scale(transform, glm::vec3(0.1f, 0.1f,0.1f));
+
+        BboxShader.setMat4("model", transform);
+        BboxShader.setMat4("projection", projection);
+        BboxShader.setMat4("view", view);
+        cube.Draw(BboxShader);
+        */ 
+//====================================================================================================
+        
+        rectShader.use();//// don't forget to enable shader 3
+        rectShader.setMat4("projection", projection);
+        rectShader.setMat4("view", view);
+        rectShader.setMat4("model", model);//glm::mat4(1));// same as model
+        //rect.Draw(rectShader);
+        
+        DrawRect (&rectShader,&bbox,vColor);
 //=============================================
 // This part of the code graps the view to pixel to be converted to opencv mat
 //----------------------------------------------------------------------------
@@ -187,26 +229,6 @@ int main()
 	glPixelStorei(GL_PACK_ROW_LENGTH, img.step/img.elemSize());
 	glReadPixels(0, 0, img.cols, img.rows, GL_BGR, GL_UNSIGNED_BYTE, img.data);
 	cv::flip(img, img, 0);
-//------------------------------------------------------------------------------
-// Turn OpenCV's Mat into something dlib can deal with.  Note that this just
-            // wraps the Mat object, it doesn't copy anything.  So cimg is only valid as
-            // long as temp is valid.  Also don't do anything to temp that would cause it
-            // to reallocate the memory which stores the image as that will make cimg
-            // contain dangling pointers.  This basically means you shouldn't modify temp
-            // while using cimg.
-            //cv_image<bgr_pixel> cimg(img);
-
-            // Detect faces 
-            //std::vector<rectangle> faces = detector(cimg);
-            // Find the pose of each face.
-            //std::vector<full_object_detection> shapes;
-            //for (unsigned long i = 0; i < faces.size(); ++i)
-            //    shapes.push_back(pose_model(cimg, faces[i]));
-
-            // Display it all on the screen
-            //win.clear_overlay();
-            //win.set_image(cimg);
-            //win.add_overlay(render_face_detections(shapes));
 
 //--------------------------------------------	
 	if(capture==1)
@@ -217,7 +239,6 @@ int main()
 	} 
 	//image_show(img,camera,debug);	
 
-        
 //--------------------------------------------
 
 //==============================================
@@ -308,8 +329,10 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 void image_write(cv::Mat img, Camera camera,int i)
 {
    string imagePath, imageName, saveImage, info;
-   imagePath = FileSystem::getPath("resources/objects/human2/images/");
-   imageName = "Image_"+std::to_string(i)+".jpg";
+   stringstream tempStream;
+   imagePath = FileSystem::getPath("resources/objects/human3/images/");
+   tempStream<<setfill('0')<<setw(4)<<i;
+   imageName = "Image_"+tempStream.str()+".jpg";
    info = std::to_string(camera.Position.x)+'_'+ std::to_string(camera.Position.y)+'_'+std::to_string(camera.Position.z)+'_'+std::to_string(camera.Pitch)+'_'+std::to_string(camera.Yaw)+'_'+std::to_string(camera.Zoom);
    saveImage = imagePath+imageName;
    putText( img, info,cv::Point( img.cols/8, img.rows/8),3, 0.3, cv::Scalar(255, 0, 255) );
@@ -332,5 +355,37 @@ void image_show(cv::Mat img, Camera camera, int i)
 }
 
 //===================================================
+
+void draw_lines()
+{
+int width = SCR_WIDTH; int height = SCR_HEIGHT;
+
+glPushMatrix();
+
+glMatrixMode(GL_PROJECTION);
+glLoadIdentity();
+glOrtho(0, width, height, 0, 0, -1000);
+
+glMatrixMode(GL_MODELVIEW);
+glLoadIdentity();
+
+glColor3f(1.0f, 0.0f, 1.0f);
+glLineWidth(2.0f);
+glBegin(GL_LINES);
+glVertex2d(width/2, height/2 - 20);
+glVertex2d(width/2, height/2 + 20);
+glEnd();
+
+glBegin(GL_LINES);
+glVertex2d(width/2 - 20, height/2);
+glVertex2d(width/2 + 20, height/2);
+glEnd();
+
+glPopMatrix();
+}
+
+
+
+//=======================================another drawing functions ends
 
 

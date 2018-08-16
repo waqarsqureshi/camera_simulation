@@ -19,7 +19,16 @@
 #include <iostream>
 #include <map>
 #include <vector>
+
+#define MAX(a, b) (a) > (b) ? (a) : (b)
+#define MIN(a, b) (a) < (b) ? (a) : (b)
+
 using namespace std;
+
+typedef struct BBox
+	{
+	        float minx, miny, minz, maxx, maxy, maxz;
+	} BBox;
 
 unsigned int TextureFromFile(const char *path, const string &directory, bool gamma = false);
 
@@ -65,6 +74,11 @@ private:
         directory = path.substr(0, path.find_last_of('/'));
 
         // process ASSIMP's root node recursively
+        //BBox_GetForNode(scene->mRootNode, mat_root, mScene_BBox, first_assign);
+	//mScene_Center = mScene_BBox.Maximum + mScene_BBox.Minimum;
+	//cout<<"x="<<mScene_BBox.Maximum.x<<" y="<<mScene_BBox.Maximum.y<<" z="<<mScene_BBox.Maximum.z<<"\n"<<endl;
+        //cout<<"x="<<mScene_BBox.Minimum.x<<" y="<<mScene_BBox.Minimum.y<<" z="<<mScene_BBox.Minimum.z<<"\n"<<endl;
+
         processNode(scene->mRootNode, scene);
 
     }
@@ -85,6 +99,7 @@ private:
         {
             processNode(node->mChildren[i], scene);
         }
+        
 
     }
 
@@ -123,17 +138,29 @@ private:
             else
                 vertex.TexCoords = glm::vec2(0.0f, 0.0f);
             // tangent
-            vector.x = mesh->mTangents[i].x;
-            vector.y = mesh->mTangents[i].y;
-            vector.z = mesh->mTangents[i].z;
-            vertex.Tangent = vector;
+            if(mesh->HasTangentsAndBitangents())
+            {
+               vector.x = mesh->mTangents[i].x;
+               vector.y = mesh->mTangents[i].y;
+               vector.z = mesh->mTangents[i].z;
+               vertex.Tangent = vector;
+            }
+            else
+               vertex.Tangent = glm::vec3(0.0f,0.0f,0.0f);
             // bitangent
-            vector.x = mesh->mBitangents[i].x;
-            vector.y = mesh->mBitangents[i].y;
-            vector.z = mesh->mBitangents[i].z;
-            vertex.Bitangent = vector;
-            vertices.push_back(vertex);
+            if(mesh->HasTangentsAndBitangents())
+            {
+               vector.x = mesh->mBitangents[i].x;
+               vector.y = mesh->mBitangents[i].y;
+               vector.z = mesh->mBitangents[i].z;
+               vertex.Bitangent = vector;
+            }
+            else
+               vertex.Bitangent = glm::vec3(0.0f,0.0f,0.0f);
+               
+            vertices.push_back(vertex);// pushback the vertex to vertices
         }
+        
         // now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
         for(unsigned int i = 0; i < mesh->mNumFaces; i++)
         {
@@ -142,6 +169,7 @@ private:
             for(unsigned int j = 0; j < face.mNumIndices; j++)
                 indices.push_back(face.mIndices[j]);
         }
+        
         // process materials
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];    
         // we assume a convention for sampler names in the shaders. Each diffuse texture should be named
@@ -242,4 +270,46 @@ unsigned int TextureFromFile(const char *path, const string &directory, bool gam
 
     return textureID;
 }
+//===========================================================================================================================
+// we are assuming that there is only one mesh in the model
+void initbbox(BBox *b)
+{
+    b->minx = FLT_MAX;
+    b->miny = FLT_MAX;
+    b->minz = FLT_MAX;
+
+    b->maxx = -FLT_MAX;
+    b->maxy = -FLT_MAX;
+    b->maxz = -FLT_MAX;
+}
+
+void update_bbox (Model *model, BBox *b)
+{
+        int i;
+
+        for(i = 0; i < model->meshes[0].vertices.size(); i++) {
+	        b->minx = MIN(b->minx, model->meshes[0].vertices[i].Position.x);
+	        b->miny = MIN(b->miny, model->meshes[0].vertices[i].Position.y);
+	        b->minz = MIN(b->minz, model->meshes[0].vertices[i].Position.z);
+	
+	        b->maxx = MAX(b->maxx, model->meshes[0].vertices[i].Position.x);
+	        b->maxy = MAX(b->maxy, model->meshes[0].vertices[i].Position.y);
+	        b->maxz = MAX(b->maxz, model->meshes[0].vertices[i].Position.z);	
+        }
+}
+
+glm::mat4 get_transform_bbox(BBox *bbox)
+
+{
+        glm::vec3 size = glm::vec3(bbox->maxx-bbox->minx, bbox->maxy-bbox->miny, bbox->maxz-bbox->minz);
+        glm::vec3 center = glm::vec3((bbox->maxx+bbox->minx)/2, (bbox->maxy+bbox->miny)/2, (bbox->maxz+bbox->minz)/2);
+        glm::mat4 transform ;
+        //transform = glm::translate(transform, center) ;
+        transform = glm::scale(transform, size);
+        return transform;
+
+
+}
+
+
 #endif

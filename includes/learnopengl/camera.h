@@ -26,7 +26,7 @@ const float YAW         = 90.0f;
 const float PITCH       =  0.0f;
 const float SPEED       =  0.3f;//2.5f
 const float SENSITIVITY =  0.2f;
-const float ZOOM        =  90.20f;// camera FOV of Phantom 4 DJI
+const float ZOOM        =  94.0f;// camera FOV of Phantom 4 DJI
 
 
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
@@ -99,8 +99,8 @@ public:
         // Make sure that when pitch is out of bounds, screen doesn't get flipped
         if (constrainPitch)
         {
-            if (Pitch > 89.0f)
-                Pitch = 89.0f;
+            if (Pitch > 30.0f)//change to memic the drone camera
+                Pitch = 30.0f;//changed to memic the drone camera
             if (Pitch < -89.0f)
                 Pitch = -89.0f;
         }
@@ -119,9 +119,9 @@ public:
         // Make sure that when pitch is out of bounds, screen doesn't get flipped
         if (constrainPitch)
         {
-            if (Pitch > 89.0f)
-                Pitch = 89.0f;
-            if (Pitch < -89.0f)
+           if (Pitch > 30.0f)//change to memic the drone camera
+                Pitch = 30.0f;//changed to memic the drone camera
+           if (Pitch < -89.0f)
                 Pitch = -89.0f;
         }
 

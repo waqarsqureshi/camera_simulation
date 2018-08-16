@@ -44,6 +44,7 @@ public:
             vertexCode = vShaderStream.str();
             fragmentCode = fShaderStream.str();			
             // if geometry shader path is present, also load a geometry shader
+        
             if(geometryPath != nullptr)
             {
                 gShaderFile.open(geometryPath);
