@@ -19,78 +19,24 @@
 #include <iostream>
 #include <vector>
 using namespace std;
-
-/*
-class vertexP{
-public:
-        vector<glm::vec3> verticesP;
-        unsigned int VAO;
-        glm::vec4 color;
-        
-        vertexP ()
-        {
-
-        }
-        vertexP(vector<glm::vec3> verticesP, glm::vec4 color)
-        {
-                this->verticesP = verticesP;
-                this->color = color;
-                setupVertexP();      
-        }
-        
-        void Draw (Shader shader)
-        {
-                shader.setVec4( "ourColor", color);
-                glBindVertexArray(VAO);
-                glDrawArrays(GL_LINE_STRIP,0, 2);
-                //glDrawArrays(GL_LINE_STRIP,2, 2);
-                //glDrawArrays(GL_LINE_STRIP,3, 2);
-                glBindVertexArray(0);
-
-        }
-        
-private:
-        unsigned int VBO;
-        //  Functions    //
-        // initializes all the buffer objects/arrays     
-
-        void setupVertexP()
-        {
-                glGenVertexArrays(1, &VAO);
-                glGenBuffers(1, &VBO);
-                // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-                glBindVertexArray(VAO);
-                glBindBuffer(GL_ARRAY_BUFFER, VBO);
-                glBufferData(GL_ARRAY_BUFFER, sizeof(verticesP), &verticesP[0], GL_STATIC_DRAW);
-                // set the vertex attribute pointers
-                // vertex Positions
-                
-                glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec4), (void*)0);
-                glEnableVertexAttribArray(0);
-                // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-                // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-                glBindVertexArray(0);
-
-        }   
-};
-
-*/
 //=======================================
 void DrawRect (Shader *shader,BBox *bbox,glm::vec4 color)
 {
+        glm::vec3 center = glm::vec3((bbox->maxx+bbox->minx)/2, (bbox->maxy+bbox->miny)/2, (bbox->maxz+bbox->minz)/2); // center of the box
+        float z = center.z; 
         float rectangle [] = {
-           bbox->minx, bbox->miny, 0,  // up 
-           bbox->minx, bbox->maxy, 0,  // 
-           bbox->maxx, bbox->maxy, 0,  // up-r
-           bbox->minx, bbox->maxy, 0,   //
-           bbox->maxx, bbox->maxy, 0,  // down-r
-           bbox->maxx, bbox->miny, 0,
-           bbox->maxx, bbox->miny, 0,
-           bbox->minx, bbox->miny, 0, 
-           
+           bbox->minx, bbox->miny, z,  // up 
+           bbox->minx, bbox->maxy, z,  // 
+           bbox->maxx, bbox->maxy, z,  // up-r
+           bbox->minx, bbox->maxy, z,   //
+           bbox->maxx, bbox->maxy, z,  // down-r
+           bbox->maxx, bbox->miny, z,
+           bbox->maxx, bbox->miny, z,
+           bbox->minx, bbox->miny, z,     
         };
         unsigned int VAO;
         unsigned int VBO;
+        glLineWidth(5);
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
         glBindVertexArray(VAO);
@@ -103,8 +49,6 @@ void DrawRect (Shader *shader,BBox *bbox,glm::vec4 color)
         shader->setVec4( "ourColor", color);
         glBindVertexArray(VAO);
         glDrawArrays(GL_LINE_LOOP,0, 8);
-        //glDrawArrays(GL_LINE_STRIP,2, 2);
-        //glDrawArrays(GL_LINE_STRIP,3, 2);
         glBindVertexArray(0);
 
 }
