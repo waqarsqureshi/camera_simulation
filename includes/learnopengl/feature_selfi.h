@@ -1,13 +1,5 @@
-#include <opencv2/core.hpp>
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/video.hpp>
-#include "opencv2/objdetect.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/videoio.hpp"
-#include <opencv/cv.h>
+#include<opencv2/opencv.hpp>
+
 #include <iostream>
 #include <string>
 #include <math.h>
@@ -17,12 +9,12 @@ using namespace cv;
 
 Point2f shoulder_2(Mat fs,string rl, int fw, int dd_mode);
 bool findface(Mat face);
-struct param {
+// structure to store feature from images
+typedef struct param {
     float desc1, desc2, desc3, desc4, desc5;
-};
-param find_parameters(Mat frame);
+} param;
 
-param find_parameters(Mat img)
+param find_parameters(Mat img,string pathToHaar)
 {
     param data;
     CascadeClassifier face;
@@ -33,7 +25,8 @@ param find_parameters(Mat img)
     size_t i;
     Point face_p1,face_p2;
     int face_b;
-    face.load("haarcascade_frontalface_alt.xml");
+    pathToHaar = pathToHaar + "haarcascade_frontalface_alt.xml";
+    face.load(pathToHaar);
     bool face_present = false;
     clock_t begin = clock();
     int width = img.cols, face_height,face_width,check,check1,start,l,r=0,b,x,lx;
@@ -135,13 +128,6 @@ param find_parameters(Mat img)
     data.desc3 = (float)shoulder_width/width;
     data.desc4 = (float)face_height/body_height;
     data.desc5 = (float) face_height/shoulder_width;
-    clock_t end = clock();
-    cout<<"Total Time = "<< double(end - begin) / CLOCKS_PER_SEC<<endl;
-    namedWindow("OUTPUT",WINDOW_NORMAL);
-    moveWindow("OUTPUT",500,100);
-    resizeWindow("OUTPUT",Size(640,480));
-    imshow("OUTPUT",img_clone);
-    waitKey(1);
     return data;
     }
     else{

@@ -301,11 +301,10 @@ void update_bbox (Model *model, BBox *b)
 glm::mat4 get_transform_bbox(BBox *bbox)
 
 {
-        glm::vec3 size = glm::vec3(bbox->maxx-bbox->minx, bbox->maxy-bbox->miny, bbox->maxz-bbox->minz);
-        glm::vec3 center = glm::vec3((bbox->maxx+bbox->minx)/2, (bbox->maxy+bbox->miny)/2, (bbox->maxz+bbox->minz)/2);
+        glm::vec3 Size = glm::vec3(bbox->maxx-bbox->minx, bbox->maxy-bbox->miny, bbox->maxz-bbox->minz);
         glm::mat4 transform ;
         //transform = glm::translate(transform, center) ;
-        transform = glm::scale(transform, size);
+        transform = glm::scale(transform, Size);
         return transform;
 
 

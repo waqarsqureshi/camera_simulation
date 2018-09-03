@@ -29,16 +29,17 @@ message(STATUS "Found ASSIMP in ${ASSIMP_INCLUDE_DIR}")
 # find_package(GLEW REQUIRED)
 # message(STATUS "Found GLEW in ${GLEW_INCLUDE_DIR}")
 
+add_subdirectory(/home/user/dlib dlib_build)
 
 if (DLIB_NO_GUI_SUPPORT)
-   message("No GUI support, so we won't build the webcam_face_pose_ex example.")
+   message("No GUI support")
 else()
 find_package(OpenCV QUIET)
    if (OpenCV_FOUND)
       include_directories(${OpenCV_INCLUDE_DIRS})
       message(STATUS "OpenCV included at ${OpenCV_INCLUDE_DIRS}")
    else()
-      message("OpenCV not found, so we won't build the webcam_face_pose_ex example.")
+      message("OpenCV not found")
    endif()
 endif()
 
@@ -76,6 +77,7 @@ set(CHAPTERS
 set(3.model_loading
     1.model_loading
     2.camera_simulation
+    3.selfi_drone
 )
 
 
@@ -106,7 +108,7 @@ foreach(CHAPTER ${CHAPTERS})
         )
         set(NAME "${CHAPTER}__${DEMO}")
         add_executable(${NAME} ${SOURCE})
-        target_link_libraries(${NAME} ${LIBS})
+        target_link_libraries(${NAME} ${LIBS} dlib::dlib)
         if(WIN32)
             set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CHAPTER}")
         elseif(UNIX AND NOT APPLE)

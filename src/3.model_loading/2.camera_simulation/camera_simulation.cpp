@@ -22,20 +22,28 @@ The camera is on the origin looking towards in the positive z direction
 
 #include<opencv2/opencv.hpp>
 
+// csv header
 
+
+#include <text/csv/ostream.hpp>    
+#include "text/csv/istream.hpp"
+
+#include <fstream>
 #include <iostream>
 #include <math.h>
 #include <stdlib.h>
 #include <iomanip>
 #include <sstream>  
+#include <string>
+#include <thread>
 //using namespace std;
 //using namespace cv;
 //using namespace glm;
 
 
 // settings
-const unsigned int SCR_WIDTH = 640;//camera width and height
-const unsigned int SCR_HEIGHT = 480;// camera width an height
+const unsigned int SCR_WIDTH = 1280;//camera width and height
+const unsigned int SCR_HEIGHT = 720;// camera width an height
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));// initial camera position in x y z direction
@@ -46,8 +54,7 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-int capture=0;
-int i=0;
+int iter=0;
 
 //opencv declaration
 cv::Mat img(SCR_HEIGHT, SCR_WIDTH, CV_8UC3);
@@ -57,15 +64,29 @@ cv::Mat img(SCR_HEIGHT, SCR_WIDTH, CV_8UC3);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
+void processInput(GLFWwindow *window,glm::vec3 centers);
 void image_write(cv::Mat img, Camera camera,int i);
 void image_show(cv::Mat img, Camera camera, int i);
 void draw_lines();
+void estimate_position(Camera * camera);
 //=================================================
+
+// This is the object of csv reader
+//==============================
+namespace csv = ::text::csv;   
+//==============================
+
 
 int main()
 {
+//=========================================================
+    std::ofstream fs("/home/user/OBJ2IMG/resources/objects/human1/images/train.csv");
+    csv::csv_ostream csvs(fs);
+    csvs << "Image" << "X" << "Y"<<"Z"<<"Zoom"<<"Pitch"<<"Yaw"<<csv::endl;
+	
+//=========================================================
 
+    
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
@@ -127,7 +148,7 @@ int main()
     glm::vec3 center = glm::vec3((bbox.maxx+bbox.minx)/2, (bbox.maxy+bbox.miny)/2, (bbox.maxz+bbox.minz)/2); // center of the box
     //std::cout<<"bbox = "<<bbox.minx<<" "<<bbox.miny<<" "<<bbox.minz<<" "<<bbox.maxx<<" "<<bbox.maxy<<" "<<bbox.maxz<<" "<<std::endl;
     //std::cout<<"center = "<<center.x<<" "<<center.y<<" "<<center.z<<std::flush;  
-    camera.Position.y = size.y;  // set the camera position to the center of the model
+    camera.Position.y = center.y;  // set the camera position to the center of the model
 //============================================================================================
     // upoad a unity cube to draw a bounding box
     Model cube(FileSystem::getPath("resources/objects/human3/bbox2.obj"));
@@ -137,8 +158,7 @@ int main()
     //glEnable(GL_POLYGON_OFFSET_FILL);
     // enable for better view of cube
     //glPolygonOffset(1, 0);
-//=========================================================
-
+//============================================================
 // render loop   
     while (!glfwWindowShouldClose(window))//|!win.is_closed())
     {
@@ -150,11 +170,11 @@ int main()
 
         // input
         // -----
-        processInput(window);
+        processInput(window,center);
 
         // render the background as white
         // ------
-        glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 //============================================================================================
         // don't forget to enable shader 1
@@ -162,9 +182,10 @@ int main()
 
         // get and set tranform for the loaded model
         // view/projection transformations fovy, aspect ratio, znear and z far
+        glm::vec3 model_position = glm::vec3(0.0f, 0.0f, 160.0f);
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 600.0f);
         glm::mat4 model;
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 200.0f)); // translate it down so it's at the center of the scene
+        model = glm::translate(model, model_position); // translate it down so it's at the center of the scene
         model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // rotate
         model = glm::scale(model, glm::vec3(1.0f,1.0f,1.0f));	// it's a bit too big for our scene, so scale it down        
         ourShader.setMat4("model", model);
@@ -203,12 +224,13 @@ int main()
         cube.Draw(BboxShader);
         */ 
 //====================================================================================================
-        
+        /* turn off the bouding box
         rectShader.use();//// don't forget to enable shader 3
         rectShader.setMat4("projection", projection);
         rectShader.setMat4("view", view);
         rectShader.setMat4("model", model);// same as model    
         DrawRect (&rectShader,&bbox,vColor);
+        */
 //=============================================
 // This part of the code graps the view to pixel to be converted to opencv mat
 //----------------------------------------------------------------------------
@@ -223,9 +245,15 @@ int main()
 //--------------------------------------------	
 	if(capture==1)
 	{
-	   image_write(img,camera,i);
+	   image_write(img,camera,iter);
 	   capture =0;
-	   i++;
+	   stringstream tempStream;
+           tempStream<<setfill('0')<<setw(4)<<iter;
+           string imageName = "Image_"+tempStream.str()+".jpg";
+           std::cout << std::fixed;
+           std::cout << std::setprecision(1);
+           csvs<<imageName<<camera.Position.x<<camera.Position.y<<camera.Position.z<<camera.Zoom<<camera.Pitch<<camera.Yaw<<csv::endl;
+           iter++;
 	} 
 	//image_show(img,camera,debug);	
 
@@ -239,6 +267,7 @@ int main()
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+        //std::this_thread::sleep_for(std::chrono::milliseconds());
     }
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
@@ -250,11 +279,10 @@ int main()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window) //waqar - not using delta time anymore
+void processInput(GLFWwindow *window,glm::vec3 center) //waqar - not using delta time anymore
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -275,8 +303,8 @@ void processInput(GLFWwindow *window) //waqar - not using delta time anymore
         camera.ProcessKeyboard(UP, deltaTime);
     if(glfwGetKey(window,GLFW_KEY_J) ==GLFW_PRESS)
         camera.ProcessKeyboard(DOWN, deltaTime);
-    if(glfwGetKey(window,GLFW_KEY_C) ==GLFW_PRESS)
-        capture=1;
+    if(glfwGetKey(window,GLFW_KEY_R) ==GLFW_PRESS)
+        camera.resetCameraPosition(0,center.y,0);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -329,9 +357,8 @@ void image_write(cv::Mat img, Camera camera,int i)
    
    infoStream << "xyzpyz "<<camera.Position.x<<'_'<<camera.Position.y<<'_'<<camera.Position.z<<'_'<<camera.Pitch<<'_'<<camera.Yaw<<'_'<<camera.Zoom;
    info = infoStream.str();
-  // info = std::to_string(camera.Position.x)+'_'+ std::to_string(camera.Position.y)+'_'+std::to_string(camera.Position.z)+'_'+std::to_string(camera.Pitch)+'_'+std::to_string(camera.Yaw)+'_'+std::to_string(camera.Zoom);
    saveImage = imagePath+imageName;
-   putText( img, info,cv::Point( img.cols/8, img.rows/8),2, 0.5, cv::Scalar(255, 0, 255) );
+   //putText( img, info,cv::Point( img.cols/8, img.rows/8),2, 0.5, cv::Scalar(255, 0, 255) );
    cv::imwrite(saveImage,img);
 }
 
@@ -357,6 +384,6 @@ void image_show(cv::Mat img, Camera camera, int i)
 }
 
 
-//=======================================another drawing functions ends
+//=======================================
 
 

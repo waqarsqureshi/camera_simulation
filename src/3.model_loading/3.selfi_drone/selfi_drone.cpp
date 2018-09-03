@@ -18,6 +18,7 @@ The camera is on the origin looking towards in the positive z direction
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
 #include <learnopengl/vertexP.h>
+#include <learnopengl/feature_selfi.h>
 //opencv
 
 #include<opencv2/opencv.hpp>
@@ -46,6 +47,8 @@ The camera is on the origin looking towards in the positive z direction
 //using namespace cv;
 //using namespace glm;
 using namespace dlib;
+// This is the object of csv reader
+namespace csv = ::text::csv;   
 
 // settings
 const unsigned int SCR_WIDTH = 1280;//camera width and height
@@ -62,13 +65,6 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 int iter=0;
 int take=0;
-
-// structure to store feature from images
-
-typedef struct desc
-	{
-	        float desc1, desc2, desc3, desc4, desc5;
-	} desc;
 	
 typedef matrix<double,5,1> input_sample;// sample measurement size is 5 samples as shown above
 // decision function from dlib	
@@ -78,10 +74,17 @@ decision_function<kernel_type> e_posY ;
 decision_function<kernel_type> e_posZ ;
 decision_function<kernel_type> e_pitch ;
 decision_function<kernel_type> e_yaw;
+param d;
 
-
+// hardcoded file paths
+string pathToHaar = "/home/user/opencv-3.4.1/data/haarcascades/";
+string pathTotestcsv = "/home/user/OBJ2IMG/resources/objects/human1/test_images/test.csv";
+string pathToDat = "/home/user/regression_selfi/build/saved_function.dat";
+string pathToObj = FileSystem::getPath("resources/objects/human1/CMan0203.obj");
+string pathToTestImages = FileSystem::getPath("resources/objects/human1/test_images/");
 //opencv declaration
 cv::Mat img(SCR_HEIGHT, SCR_WIDTH, CV_8UC3);
+cv::Mat templ(SCR_HEIGHT,SCR_WIDTH,CV_8UC3);// for template read
 
 //variable tos ave size and center of the model
 glm::vec3 Center;
@@ -95,30 +98,38 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 void image_write(cv::Mat img,int i);
 void image_show(cv::Mat img,int i);
-void takeMeTo_position(desc d,decision_function<kernel_type> e_posZ,decision_function<kernel_type> e_posY,decision_function<kernel_type> e_posX,decision_function<kernel_type> e_pitch,decision_function<kernel_type> e_yaw);
+void takeMeTo_position(param d,decision_function<kernel_type> e_posZ,decision_function<kernel_type> e_posY,decision_function<kernel_type> e_posX,decision_function<kernel_type> e_pitch,decision_function<kernel_type> e_yaw);
 //=================================================
 
-// This is the object of csv reader
-//==============================
-namespace csv = ::text::csv;   
-//==============================
-
-
-int main()
+int main(int argc, char** argv)
 {
+    if (argc == 1)
+    {
+        cout << "Give a template image file as arguments to this program." << endl;
+        return 0;
+    }
+    templ = cv::imread(argv[1]);
+    cout<<argv[1]<<endl;
+
+    d.desc1=0;d.desc2=0;d.desc3=0;d.desc4=0;d.desc5=0;
+    if(templ.empty())
+    {
+        cout << "The argument is not a valid image path. We use the predefined desc to estimate camera parameter when T is pressed" << endl;             
+    }
+
+    d =  find_parameters(templ,pathToHaar);
+    cout<<d.desc1;cout<<": ";
+    cout<<d.desc2;cout<<": ";
+    cout<<d.desc3;cout<<": ";
+    cout<<d.desc4;cout<<": ";
+    cout<<d.desc5;cout<<endl;
 //=========================================================
-    std::ofstream fs("/home/user/OBJ2IMG/resources/objects/human1/test_images/test.csv");
+    std::ofstream fs(pathTotestcsv);
     csv::csv_ostream csvs(fs);
     csvs << "Image" << "X" << "Y"<<"Z"<<"Zoom"<<"Pitch"<<"Yaw"<<csv::endl;
 //=========================================================
 //read the regressor parameters
-    deserialize("/home/user/regression_selfi/build/saved_function.dat")>>e_posZ>>e_posY >>e_posX >> e_pitch >>e_yaw;// please check how they are save while serializing
-    desc d;
-    d.desc1 =  -0.0455377;
-    d.desc2 = 0.193182 ;
-    d.desc3 = 0.0929687;
-    d.desc4 =   0.12013;
-    d.desc5 =  0.621849;
+    deserialize(pathToDat)>>e_posZ>>e_posY >>e_posX >> e_pitch >>e_yaw;// please check how they are save while serializing
 //=========================================================
     
     // glfw: initialize and configure
@@ -168,7 +179,7 @@ int main()
     Shader ourShader("camera_simulation.vs", "camera_simulation.fs");
     // load models
     // -----------
-    Model ourModel(FileSystem::getPath("resources/objects/human1/CMan0203.obj"));
+    Model ourModel(pathToObj);
     BBox bbox; // make a struct to contain bounding box (BBox is a structure defined in model.h)
     initbbox(&bbox);  
     //initialize color to draw a square shape
@@ -227,12 +238,15 @@ int main()
         glm::mat4 view = camera.GetViewMatrix();
 //=====================================================================================
         // print camera position
+
         std::cout << std::fixed;
         std::cout << std::setprecision(1);
         cout<<'\r'<<" x "<<std::setw(5)<< std::setfill('0')<<camera.Position.x<<" y "<< std::setw(5)<<camera.Position.y;
         cout<<" z "<< std::setw(5)<<camera.Position.z;
         cout<<" zoom "<< std::setw(5)<<camera.Zoom;
         cout<<" p "<< std::setw(5)<<camera.Pitch<<" y "<< std::setw(5)<<camera.Yaw<<std::flush;
+        
+       
 //=================================================================================================
 	//set projection and view of the model       
 	ourShader.setMat4("projection", projection);
@@ -362,13 +376,13 @@ void image_write(cv::Mat img,int i)
    stringstream infoStream;
    std::fixed;
    std::setprecision(1);
-   imagePath = FileSystem::getPath("resources/objects/human1/test_images/");
+   imagePath = pathToTestImages;
    tempStream<<setfill('0')<<setw(4)<<i;
    imageName = "Image_"+tempStream.str()+".jpg";
    
-   infoStream << "xyzpyz "<<camera.Position.x<<'_'<<camera.Position.y<<'_'<<camera.Position.z<<'_'<<camera.Pitch<<'_'<<camera.Yaw<<'_'<<camera.Zoom;
+   infoStream << "xyzpyZ:"<<camera.Position.x<<'_'<<camera.Position.y<<'_'<<camera.Position.z<<'_'<<camera.Pitch<<'_'<<camera.Yaw<<'_'<<camera.Zoom;
    info = infoStream.str();
-  // info = std::to_string(camera.Position.x)+'_'+ std::to_string(camera.Position.y)+'_'+std::to_string(camera.Position.z)+'_'+std::to_string(camera.Pitch)+'_'+std::to_string(camera.Yaw)+'_'+std::to_string(camera.Zoom);
+
    saveImage = imagePath+imageName;
    putText( img, info,cv::Point( img.cols/8, img.rows/8),2, 0.5, cv::Scalar(255, 0, 255) );
    cv::imwrite(saveImage,img);
@@ -395,7 +409,7 @@ void image_show(cv::Mat img, int i)
       }
 }
 
-void takeMeTo_position(desc d,decision_function<kernel_type> e_posZ,decision_function<kernel_type> e_posY,decision_function<kernel_type> e_posX,decision_function<kernel_type> e_pitch,decision_function<kernel_type> e_yaw)
+void takeMeTo_position(param d,decision_function<kernel_type> e_posZ,decision_function<kernel_type> e_posY,decision_function<kernel_type> e_posX,decision_function<kernel_type> e_pitch,decision_function<kernel_type> e_yaw)
 {
     input_sample S;
     //
@@ -405,6 +419,7 @@ void takeMeTo_position(desc d,decision_function<kernel_type> e_posZ,decision_fun
     float x = e_posX(S);
     float pitch = e_pitch(S);
     float yaw = e_yaw(S);
+    //cout<<x;cout<<": ";cout<<y;cout<<": ";cout<<z;cout<<": ";cout<<pitch;cout<<": ";cout<<yaw;cout<<endl;
     camera.setCameraPosition(x,y,z,pitch,yaw);
 }
 

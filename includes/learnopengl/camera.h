@@ -18,7 +18,8 @@ enum Camera_Movement {
     LEFT_ARROW,
     RIGHT_ARROW,
     UP,
-    DOWN   
+    DOWN,
+    RESET   
 };
 
 // Default camera values
@@ -27,7 +28,7 @@ const float PITCH       =  0.0f;
 const float SPEED       =  0.3f;//2.5f
 const float SENSITIVITY =  0.2f;
 const float ZOOM        =  94.0f ;//94.0f;// camera FOV of Phantom 4 DJI
-
+int capture=0;
 
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
 class Camera
@@ -76,6 +77,7 @@ public:
     void ProcessKeyboard(Camera_Movement direction, float deltaTime,GLboolean constrainPitch = true)
     {
         float velocity = MovementSpeed ;//* deltaTime;
+        capture=1;
         if (direction == FORWARD)
             Position.z  = Position.z + velocity;
         if (direction == BACKWARD)
@@ -95,7 +97,7 @@ public:
         if (direction == RIGHT_ARROW)
             Yaw  = Yaw + velocity;
         if (direction == LEFT_ARROW)
-            Yaw  = Yaw - velocity;            
+            Yaw  = Yaw - velocity;     
         // Make sure that when pitch is out of bounds, screen doesn't get flipped
         if (constrainPitch)
         {
@@ -139,6 +141,26 @@ public:
         if (Zoom >= ZOOM)
             Zoom = ZOOM;
     }
+    // reset the camera to the position it was initially
+    void resetCameraPosition(float x, float y, float z)
+    {
+        // Calculate the new Front vector
+        Pitch = PITCH; 
+        Yaw = YAW;
+        Zoom = ZOOM;
+        Position = glm::vec3(x,y,z);
+        updateCameraVectors();
+    }
+    
+    void setCameraPosition(float x, float y, float z,float pitch,float yaw)
+    {
+        // Calculate the new Front vector
+        Pitch = pitch; 
+        Yaw = yaw;
+        Zoom = ZOOM;
+        Position = glm::vec3(x,y,z);
+        updateCameraVectors();
+    }
 
 private:
     // Calculates the front vector from the Camera's (updated) Euler Angles
@@ -154,5 +176,6 @@ private:
         Right = glm::normalize(glm::cross(Front, WorldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
         Up    = glm::normalize(glm::cross(Right, Front));
     }
+    
 };
 #endif
