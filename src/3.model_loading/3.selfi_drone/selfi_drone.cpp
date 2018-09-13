@@ -109,6 +109,7 @@ void image_write(cv::Mat img,int i);
 void image_show(cv::Mat img,int i);
 void takeMeTo_position(param d,decision_function<kernel_type> e_posZ,decision_function<kernel_type> e_posY,decision_function<kernel_type> e_posX,decision_function<kernel_type> e_pitch,decision_function<kernel_type> e_yaw);
 //=================================================
+                /*
                 float x_initial = camera.Position.x;
                 float y_initial = camera.Position.y;
                 float z_initial = camera.Position.z;
@@ -121,7 +122,8 @@ void takeMeTo_position(param d,decision_function<kernel_type> e_posZ,decision_fu
                 float yaw = yaw_initial;
                 float z_final = -100;//e_posZ(S);
                 float y_final = 100;//e_posY(S);
-                float x_final = 100;//e_posX(S);      
+                float x_final = 100;//e_posX(S);  
+                */    
 //=================================================
 
 int main(int argc, char** argv)
@@ -308,20 +310,21 @@ int main(int argc, char** argv)
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;// time in second
         lastFrame = currentFrame;
-
+        glClearColor(0.0f, 0.49f, 0.74117f, 1.0f);//0 127 189
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
         // process the input
         processInput(window);
         
-                x_initial = camera.Position.x;
-                y_initial = camera.Position.y;
-                z_initial = camera.Position.z;
-                pitch_initial = camera.Pitch;
-                yaw_initial - camera.Yaw;
-                x = x_initial;
-                y = y_initial;
-                z = z_initial;
-                yaw = yaw_initial;
-                pitch = pitch_initial;
+                float x_initial = camera.Position.x;
+                float y_initial = camera.Position.y;
+                float z_initial = camera.Position.z;
+                float pitch_initial = camera.Pitch;
+                float yaw_initial = camera.Yaw;
+                float x = x_initial;
+                float y = y_initial;
+                float z = z_initial;
+                float yaw = yaw_initial;
+                float pitch = pitch_initial;
                 
         if(take==1)
         {        
@@ -343,6 +346,7 @@ int main(int argc, char** argv)
                     // very important to clear screen here
                     glClearColor(0.0f, 0.49f, 0.74117f, 1.0f);//0 127 189
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+                    //processInput(window);
                     
                         if (x_initial>x_final)
                         {
@@ -356,7 +360,7 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only x reached desired location
                                     
-                                    if(x<=x_final && y<=y_final && z<=z_final && pitch<=pitch_final)
+                                    if(x<=x_final && y<=y_final && z<=z_final && pitch-0.2<pitch_final)
                                     {
                                         take=0;
                                         break;
@@ -376,7 +380,7 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only y reached desired location
                                     
-                                    if(x>=x_final && y>=y_final && z>=z_final && pitch>=pitch_final)
+                                    if(x>=x_final && y>=y_final && z>=z_final && pitch+0.2>pitch_final)
                                     {
                                         take=0;
                                         break;
@@ -395,7 +399,7 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only x reached desired location
                                     
-                                    if(x<=x_final && y<=y_final && z<=z_final && pitch<=pitch_final)
+                                    if(x<=x_final && y<=y_final && z<=z_final && pitch-0.2<pitch_final)
                                     {
                                         take=0;
                                         break;
@@ -415,7 +419,7 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if ony y reached desired location
                                     
-                                    if(x>=x_final && y>=y_final && z>=z_final&& pitch>=pitch_final)
+                                    if(x>=x_final && y>=y_final && z>=z_final&& pitch+0.2>pitch_final)
                                     {
                                         take=0;
                                         break;
@@ -434,7 +438,7 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only z reached desired location
                                     
-                                    if(x<=x_final && y<=y_final && z<=z_final&& pitch<=pitch_final)
+                                    if(x<=x_final && y<=y_final && z<=z_final&& pitch-0.2<pitch_final)
                                     {
                                         take=0;
                                         break;
@@ -454,7 +458,7 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only z reached desired location
                                     
-                                    if(x>=x_final && y>=y_final && z>=z_final&& pitch>=pitch_final)
+                                    if(x>=x_final && y>=y_final && z>=z_final&& pitch+0.2>pitch_final)
                                     {
                                         take=0;
                                         break;
@@ -474,7 +478,7 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only z reached desired location
                                     
-                                    if(x<=x_final && y<=y_final && z<=z_final && pitch<=pitch_final)
+                                    if(x<=x_final && y<=y_final && z<=z_final && (pitch-0.2)<pitch_final)
                                     {
                                         take=0;
                                         break;
@@ -494,13 +498,14 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only z reached desired location
                                     
-                                    if(x>=x_final && y>=y_final && z>=z_final && pitch>=pitch_final)
+                                    if(x>=x_final && y>=y_final && z>=z_final && (pitch+0.2)>pitch_final)
                                     {
                                         take=0;
                                         break;
                                     }
                                 }
-                        }                    
+                        }   
+                                       
                         //=========================================
                         // don't forget to enable shader 1
                         ourShader2.use();
@@ -508,8 +513,7 @@ int main(int argc, char** argv)
                         view = camera.GetViewMatrix();
 	                    //set projection and view of the model       
                         ourShader2.setMat4("view", view);
-                        ourModel2.Draw(ourShader2);
-                         
+                        ourModel2.Draw(ourShader2);  
                         //=====================================================
                         // don't forget to enable floor shader 
                         ourShaderFloor.use();
@@ -532,6 +536,7 @@ int main(int argc, char** argv)
                         DrawWallLeft(&ourShaderWallLeft,wallLeftTexture);   
                         //==========================================================
                                 // print camera position
+                              
                         std::cout << std::fixed;
                         std::cout << std::setprecision(1);
                         cout<<'\r'<<" x "<<std::setw(5)<< std::setfill('0');
@@ -542,23 +547,20 @@ int main(int argc, char** argv)
                         cout<< std::setw(5)<<camera.Yaw;
                         cout<<" fps: " <<std::setw(3)<<(1/(deltaTime));
                         cout<<std::flush;
+                        
+                        //cout<<"x "<<x_final<<"y"<<y_final<<"z"<<z_final<<"p"<<pitch_final;
+                        //cout<<std::flush;
                         // important to poll events and mouse events for rendering affect
                         glfwSwapBuffers(window);
                         glfwPollEvents();
                 }// end of while (1)
-                
-            take=0;   
+                  
 	    }//end of if take
 	   
 //============================================================================================
-        else
-       
+        else   
         {
             //=====================================================
-            // render the background as some color
-            glClearColor(0.0f, 0.49f, 0.74117f, 1.0f);//0 127 189
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
-
             // don't forget to enable shader 1
             ourShader2.use();
             // set the view matrix for model and the cube
@@ -598,6 +600,7 @@ int main(int argc, char** argv)
             */
             //=============================================================
             // print camera position
+            
             std::cout << std::fixed;
             std::cout << std::setprecision(1);
             cout<<'\r'<<" x "<<std::setw(5)<< std::setfill('0')<<camera.Position.x<<" y "<< std::setw(5)<<camera.Position.y;
@@ -607,7 +610,6 @@ int main(int argc, char** argv)
             cout<< std::setw(5)<<camera.Yaw;
             cout<<" fps: " <<std::setw(3)<<(1/(deltaTime));
             cout<<std::flush;
-            
             //===========================================================================
             // This part of the code graps the view to pixel to be converted to opencv mat
             //----------------------------------------------------------------------------
@@ -637,9 +639,8 @@ int main(int argc, char** argv)
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
             // -------------------------------------------------------------------------------
             glfwSwapBuffers(window);
-            glfwPollEvents();
-        }// else when take=0
-                
+            glfwPollEvents();  
+        }// else when take=0       
     }// end of main while statement
     
     //=====================================================
@@ -680,7 +681,7 @@ void processInput(GLFWwindow *window) //waqar - not using delta time anymore
     if(glfwGetKey(window,GLFW_KEY_J) ==GLFW_PRESS)
         camera.ProcessKeyboard(DOWN, deltaTime);
     if(glfwGetKey(window,GLFW_KEY_R) ==GLFW_PRESS)
-        camera.resetCameraPosition(0,Center.y,0);
+        {camera.resetCameraPosition(0,Center.y,0);take=0;}
     if(glfwGetKey(window,GLFW_KEY_T) ==GLFW_PRESS)
         {take=1;captureFrame=1;}
 }
@@ -778,8 +779,21 @@ void takeMeTo_position(param d,decision_function<kernel_type> e_posZ,decision_fu
     //cout<<x;cout<<": ";cout<<y;cout<<": ";cout<<z;cout<<": ";cout<<pitch;cout<<": ";cout<<yaw;cout<<endl;
     camera.setCameraPosition(x,y,z,pitch,yaw);
 }
-
 //=====================================
+
+ int compare_float(float f1, float f2) 
+ {
+  float precision = 0.0001;
+  if (((f1 - precision) < f2) && 
+      ((f1 + precision) > f2))
+   {
+    return 1;
+   }
+  else
+   {
+    return 0;
+   }
+ }
 
 
 
