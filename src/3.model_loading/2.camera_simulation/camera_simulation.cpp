@@ -80,7 +80,7 @@ namespace csv = ::text::csv;
 int main()
 {
 //=========================================================
-    std::ofstream fs("/home/user/OBJ2IMG/resources/objects/human1/images/train.csv");
+    std::ofstream fs("/home/user/OBJ2IMG/resources/objects/human2/images/train.csv");
     csv::csv_ostream csvs(fs);
     csvs << "Image" << "X" << "Y"<<"Z"<<"Zoom"<<"Pitch"<<"Yaw"<<csv::endl;
 	
@@ -135,7 +135,7 @@ int main()
     Shader rectShader("camera_simulation_3.vs", "camera_simulation_3.fs");//
     // load models
     // -----------
-    Model ourModel(FileSystem::getPath("resources/objects/human1/CMan0203.obj"));
+    Model ourModel(FileSystem::getPath("resources/objects/human2/CMan0206.obj"));
     //Model ourModel(FileSystem::getPath("resources/objects/human3/full_body.obj"));
     BBox bbox; // make a struct to contain bounding box (BBox is a structure defined in model.h)
     initbbox(&bbox);  
@@ -351,7 +351,7 @@ void image_write(cv::Mat img, Camera camera,int i)
    stringstream infoStream;
    std::fixed;
    std::setprecision(1);
-   imagePath = FileSystem::getPath("resources/objects/human1/images/");
+   imagePath = FileSystem::getPath("resources/objects/human2/images/");
    tempStream<<setfill('0')<<setw(4)<<i;
    imageName = "Image_"+tempStream.str()+".jpg";
    
