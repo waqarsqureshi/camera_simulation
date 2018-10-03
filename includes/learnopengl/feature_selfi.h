@@ -7,245 +7,149 @@
 using namespace std;
 using namespace cv;
 
-Point2f shoulder_2(Mat fs,string rl, int fw, int dd_mode);
-bool findface(Mat face);
 // structure to store feature from images
-typedef struct param {
-    float desc1, desc2, desc3, desc4, desc5;
-} param;
+struct param {
+    float desc1, desc2, desc3, desc4, desc5, desc6, desc7;
+};
+
+param find_parameters(Mat frame, string pathToHaar);
+Point shoulder(Mat img, string side );
 
 param find_parameters(Mat img,string pathToHaar)
 {
     param data;
-    CascadeClassifier face;
+    CascadeClassifier face_cascade;
+    string fileHaar = pathToHaar + "haarcascade_frontalface_alt.xml";
+    face_cascade.load(fileHaar);
+    Mat  clone,clone1, gray,clone_gray,shoulder_roi;
+    Rect ROI;
     vector<Rect> faces;
-    Mat gray,face_roi;
-    Rect ROI,Face_ROI;
-    Point p,p1,p2;
     size_t i;
-    Point face_p1,face_p2;
-    int face_b;
-    pathToHaar = pathToHaar + "haarcascade_frontalface_alt.xml";
-    face.load(pathToHaar);
-    bool face_present = false;
-    clock_t begin = clock();
-    int width = img.cols, face_height,face_width,check,check1,start,l,r=0,b,x,lx;
+    bool face_present = 0;
+    int name = 0,face_height = 0,face_width = 0,frame_width = 0, frame_height = 0,index,xn,yn,FH2,FW2;
+    Point face_bottom,left,right,shifted_left,shifted_right,face_center;
+    shifted_left.x = shifted_left.y = 0;
+    shifted_right.x = shifted_right.y = 0;
+    //cap >> img;
+    face_present = false;
+    frame_width = img.cols;
+    frame_height = img.rows;
+    FH2 = frame_height/2;
+    FW2 = frame_width/2;
     cvtColor(img,gray,CV_BGR2GRAY);
-    face.detectMultiScale( gray, faces, 1.1,2, 0|CASCADE_SCALE_IMAGE, Size(30, 30) );
+    face_cascade.detectMultiScale( gray, faces, 1.1,5, 0|CASCADE_SCALE_IMAGE, Size(10, 10) );
     for ( i = 0; i < faces.size(); i++ )
     {
-        Face_ROI = Rect(faces[i].x, faces[i].y, faces[i].width, faces[i].height);
-        face_roi = img(Face_ROI);
-        face_present = findface(face_roi);
-        if(face_present==false)
+        if(faces.size()==0 || faces.size()>1)
             break;
-        //face detection
-        face_b = faces[i].y + faces[i].height;
-        p2.y = faces[i].y + faces[i].height ;
-        p.y = faces[i].y + faces[i].height;
-        face_width = faces[i].width;
-        p1.y = p.y + faces[i].height;
-        rectangle(img,faces[i],Scalar(255,0,0),4);
-        ROI = Rect(0, p.y+5, width, faces[i].height*2);
-        face_height = faces[i].height;
-        check = p.y + face_height;
-        check1 = p.y + (face_height*4);
-        l = width;
-        //face and body parameters
-        face_p1.x = faces[i].x + face_width/2;
-        face_p1.y = faces[i].y;
-        face_p2.x = face_p1.x;
-        face_p2.y = face_p1.y + face_height;
-        line(img,face_p1,face_p2,Scalar(0,255,0),4);
-    }
-    if(!face_present == false){
-    Mat img_clone = img.clone();
-    cvtColor(img,img,CV_BGR2GRAY);
-    // LEFT POINT
-    for(x = check;x<check1;x+=5){
-    for(start = 0;start<img.cols;start++){
-        int val = (int)img.at<uchar>(x,start);
-        if(val > 15){
-            if(start < l ){
-                l= start;
-                lx = x;
-            }
-                img.at<uchar>(x,start) = 255;
-                break;
-                }
-    }}
-    for(int y = check;y<check1;y+=5){
-    for(start = img.cols;start>1;start--){
-        int val = (int)img.at<uchar>(y,start);
-        if(val > 15){
-            if(start > r ){
-                r= start;
-            }
-                           img.at<uchar>(y,start) = 255;
-                           break;
-                       }
-    }}
-    // BOTTOM POINT
-    bool exit;
-    for(check = img.rows-15;check>8;check-=5){
-    for(start = img.cols;start>1;start--){
-        int val = (int)img.at<uchar>(check,start);
-        if(val > 15){
-                           b = check;
-                           img.at<uchar>(check,start) = 255;
-                           exit = true;
-                           break;
-                       }
-                       else{
-                           exit =  false;
-                       }
-    }
-    if(exit==true){break;}
-    }
-    Mat clone2 = img_clone.clone();
-    Point b1 = p2, b2;
-    b1.x = l;
-    b2.x = r;
-    b2.y = b;
-    rectangle(img_clone,b1,b2,Scalar(0,255,0),4,8);
-    Point b1_c=b1,b2_c=b2;
-    int body_width = b2.x - b1.x;
-    int body_height = (b2_c.y - b1.y);
-    b1_c.x +=body_width/2;
-    b2_c.x -=body_width/2;
-    line(img_clone,b1_c,b2_c,Scalar(0,0,255),4,8);
-    Mat image_roi = clone2(ROI);
-    Point2f shoulder_right = shoulder_2(image_roi,"left",face_width,1);
-    Point2f shoulder_left = shoulder_2(image_roi,"right",face_width,1);
-    shoulder_left.y += face_b;
-    shoulder_right.y += face_b;
-    line(img_clone,shoulder_left,shoulder_right,Scalar(0,0,255),4,8);
-    int shoulder_width = shoulder_right.x - shoulder_left.x;
-    float slope;
-    slope = (shoulder_right.y-shoulder_left.y)/(shoulder_right.x-shoulder_left.x);
-    data.desc1 = slope;
-    data.desc2 = (float)shoulder_width/body_height;
-    data.desc3 = (float)shoulder_width/width;
-    data.desc4 = (float)face_height/body_height;
-    data.desc5 = (float) face_height/shoulder_width;
-    return data;
-    }
-    else{
-        cout<<"NO FACE"<<endl;
-        data.desc1 = data.desc2 = data.desc3 = data.desc4 = 0;
-        return data;
-    }
-
-}
-
-Point2f shoulder_2(Mat fs,string rl, int fw, int dd_mode)
-{
-    Mat cdst = Mat::zeros(fs.size(), CV_8UC1);
-    Point2f shoulder;
-    Point sc;
-    if(rl == "right")
-    sc = Point(fs.cols , fs.rows);
-    else if(rl==  "left")
-    sc = Point(0 , fs.rows);
-    int erosion_size = 2;
-    int dilation_size = 2;
-    cvtColor (fs, fs, COLOR_BGR2GRAY);
-    threshold (fs, fs, 15, 255, CV_THRESH_BINARY);
-    Mat element = getStructuringElement (MORPH_ELLIPSE, Size (2 * dilation_size + 1, 2 * dilation_size + 1), Point (-1, -1));
-    element = getStructuringElement (MORPH_ELLIPSE, Size (2 * erosion_size + 1, 2 * erosion_size + 1), Point (-1, -1));
-    blur (fs, fs, Size (3, 3));
-    vector<vector<Point> > contours1;
-    vector<cv::Vec4i> hierarchy1;
-    int largest_index = 0;
-    int largest_area = 0;
-    findContours (fs , contours1 , hierarchy1 , CV_RETR_EXTERNAL , CV_CHAIN_APPROX_SIMPLE , Point (0, 0));
-    if (!contours1.empty())
-      {
-        for (size_t k1 = 0; k1 < contours1.size (); k1++)
-    {
-      double a = contourArea (contours1[k1], false); //  Find the area of contour
-      if (a > largest_area)
-        {
-          largest_area = a;
-          largest_index = k1; //Store the index of largest contour
-          }
-    }
-      }
-    Mat drawing2 = Mat::zeros (cdst.size (), CV_8UC1);
-    drawContours (drawing2, contours1, largest_index, Scalar(255,255,255), -1, 8, hierarchy1, 0, Point ());
-    morphologyEx (drawing2, drawing2, MORPH_CLOSE, getStructuringElement (MORPH_ELLIPSE, Size (15, 15) ) );
-    cdst = drawing2.clone();
-    Canny (drawing2, cdst, 300, 600, 5);
-    element = getStructuringElement (MORPH_ELLIPSE, Size (2,2), Point (-1, -1));
-    dilate (cdst, cdst, element);
-    std::vector<std::vector<cv::Point> > contours;
-    std::vector<cv::Vec4i> hierarchy;
-    findContours (cdst , contours , hierarchy , CV_RETR_EXTERNAL , CV_CHAIN_APPROX_SIMPLE , Point (0, 0));
-    std::vector<Moments> mu (contours.size ());
-    float sx[100] = {} , tx[100] = {}, ty[100] =  {};
-    if (!contours.empty())
-      {
-        for (size_t k1 = 0; k1 < contours.size (); k1++)
-    {
-      mu[k1] = moments (contours[k1], false);
-    }
-        std::vector<Point2f> mc (contours.size ());
-        for (size_t k2 = 0; k2 < contours.size (); k2++)
-    {
-      mc[k2] = Point2f (float (mu[k2].m10 / mu[k2].m00),
-                     float (mu[k2].m01 / mu[k2].m00));
-    }
-        Mat drawing = Mat::zeros (cdst.size (), CV_8UC3);
-        int k4 = 0;
-        RNG rng2 (12345);
-        for (size_t k3 = 0; k3 < contours.size (); k3++)
-    {
-      Scalar color = Scalar (rng2.uniform (0, 255), rng2.uniform (0, 255), rng2.uniform (0, 255));
-      drawContours (drawing, contours, k3, color, 2, 8, hierarchy, 0, Point ());
-      circle (drawing, mc[k3], 4, Scalar(100,200,0), -1, 8, 0);
-      if (mc[k3].x > 0 && mc[k3].y > 0)
-        {
-          sx[k4] = mc[k3].x;
-          tx[k4] = mc[k3].x;
-          ty[k4] = mc[k3].y;
-          k4++;
+        else{
+            face_present = true;
+            clone = img.clone();
+            clone1 = img.clone();
+            face_height = faces[i].height;
+            face_bottom.y = faces[i].y + faces[i].height + 1;
+            face_bottom.x = faces[i].x;
+            face_width = faces[i].width;
+            cout<<face_height<<"___"<<face_width<<endl;
+            face_center.x = faces[i].x + face_width/2;
+            face_center.y = faces[i].y + face_height/2;
+            xn = face_center.x - frame_width/2;
+            yn = face_center.y - frame_height/2;
+            circle(clone,face_center,3,Scalar(0,0,255),2);
+            rectangle(clone,faces[i],Scalar(0,255,0),2);
+            break;
         }
     }
-        sort (sx, sx + k4);
-        if (rl == "right")	{	  shoulder.x = sx[0];	}
-        else if (rl == "left")	{	  shoulder.x = sx[k4-1];	}
-        for (int j2 = 0; j2 < k4; j2++)
-    {
-      if (tx[j2] == shoulder.x)	{	shoulder.y = ty[j2];	}
-    }       drawing.release ();
-      }
-    fs.release ();
-    return shoulder;
+    if(face_present==true){
+        cvtColor(clone1,clone_gray,CV_BGR2GRAY);
+        threshold(clone_gray,clone_gray,10,255,THRESH_BINARY);
+        vector<vector<Point> > contours;
+        findContours( clone_gray, contours, RETR_TREE, CHAIN_APPROX_SIMPLE );
+        vector<vector<Point> > contours_poly( contours.size() );
+        vector<Rect> boundRect( contours.size() );
+        for( size_t i = 0; i < contours.size(); i++ ){
+            approxPolyDP( contours[i], contours_poly[i], 3, true );
+            boundRect[i] = boundingRect( contours_poly[i] );
+            if(boundRect[i].width>face_width*1.5 && boundRect[i].height>face_height*4){
+                ROI = Rect(Point(boundRect[i].tl().x,face_bottom.y),Point(boundRect[i].br().x,face_bottom.y+face_width*1.2));
+                rectangle( clone, Point(boundRect[i].tl().x,face_bottom.y), boundRect[i].br(), Scalar(0,0,255), 2 );
+                shoulder_roi = clone1(ROI);
+                index = i;
+                break;
+            }
+        }
+        // FIND SHOULDER POINTS
+        left = shoulder(shoulder_roi,"left");
+        right = shoulder(shoulder_roi,"right");
+        // SHIFT POINTS TO ORIGINAL IMAGE
+        shifted_left.x = left.x + boundRect[index].tl().x;
+        shifted_left.y = left.y+face_bottom.y;
+        shifted_right.x = right.x + boundRect[index].tl().x;
+        shifted_right.y = right.y+face_bottom.y;
+        circle(clone,shifted_left,4,Scalar(255,0,0),-1);
+        circle(clone,shifted_right,4,Scalar(0,0,255),-1);
+        line(clone,shifted_left,shifted_right,Scalar(0,0,255),2);
+        // FIND PARAMETERS
+        float slope = (float)(shifted_right.y - shifted_left.y) / (shifted_right.x - shifted_left.x);
+        int shoulder_width = shifted_right.x - shifted_left.x;
+        int body_height = boundRect[index].br().y - boundRect[index].tl().y;
+        data.desc1 = slope;
+        data.desc2 = (float)shoulder_width/body_height;
+        data.desc3 = (float)shoulder_width/clone.cols;
+        data.desc4 = (float)face_height/body_height;
+        data.desc5 = (float)face_height/shoulder_width;
+        data.desc6 = (float)xn/FW2;
+        data.desc7 = (float)yn/FH2;
+        namedWindow("Template Detected",WINDOW_NORMAL);
+        imshow("Template Detected",clone);
+        int key = cv::waitKey(0);
+        if (key==27)
+            destroyWindow("Template Detected");
+    }
+    else
+        data.desc1 = data.desc2 = data.desc3 = data.desc4 = data.desc5 = data.desc6 = data.desc7 = 0;
+    return data;
 }
 
-bool findface(Mat face)
+Point shoulder(Mat img, string side )
 {
-  bool found = false ;
-  resize (face, face, Size (face.cols * 2, face.rows * 2), 0, 0, 3);
-  Mat f_ycrcb, skin;
-  cvtColor (face, f_ycrcb, COLOR_BGR2YCrCb);
-  //inRange(f_ycrcb,Scalar(60, 135, 90), Scalar (255, 170, 135),skin);
-  inRange(f_ycrcb,Scalar(60, 135, 90), Scalar (255, 255, 255),skin);
-  Mat f_s;
-  int num=0;
-  face.copyTo(f_s,skin);
-  for(int i =0;i<skin.rows;i++){
-      for(int j =0;j<skin.cols;j++){
-          int val = (int)skin.at<uchar>(i,j);
-          if(val > 15){
-              num++;
+  Mat src_gray,canny_output,left,right;
+  Rect left_roi,right_roi;
+  vector<vector<Point> > contours;
+  vector<Vec4i> hierarchy;
+  cvtColor(img,src_gray,CV_BGR2GRAY);
+  threshold(src_gray,src_gray,15,255,THRESH_BINARY);
+  Canny( src_gray, canny_output, 200, 255, 3 );
+  if(side == "right"){
+      left_roi = Rect(canny_output.cols/2,0,canny_output.cols/2,canny_output.rows);
+      left = canny_output(left_roi);
+      canny_output = left.clone();
+  }
+  else{
+      right_roi = Rect(0,0,canny_output.cols/2,canny_output.rows);
+      right = canny_output(right_roi);
+      canny_output = right.clone();
+  }
+  findContours( canny_output, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0) );
+  vector<Moments> mu(contours.size() );
+  for( size_t i = 0; i < contours.size(); i++ )
+     { mu[i] = moments( contours[i], false );}
+  vector<Point2f> mc( contours.size() );
+  for( size_t i = 0; i < contours.size(); i++ )
+     { mc[i] = Point2f( static_cast<float>(mu[i].m10/mu[i].m00) , static_cast<float>(mu[i].m01/mu[i].m00) ); }
+  int largest_area1 = 0,largest_contour_index1 = 0;
+  for( int i = 0; i< contours.size(); i++ )
+      {
+          int a=arcLength(contours[i],true);
+          if(a>largest_area1){
+              largest_area1=a;
+              largest_contour_index1=i;
           }
       }
+  if(side == "right"){
+      mc[largest_contour_index1].x = mc[largest_contour_index1].x + canny_output.cols;
+      return mc[largest_contour_index1];
   }
-  float total = skin.rows*skin.cols;
-  float per = (num/total)*100;
-  if(per > 69){
-      found = true;
-  }
- return found;
+  else
+      return mc[largest_contour_index1];
 }

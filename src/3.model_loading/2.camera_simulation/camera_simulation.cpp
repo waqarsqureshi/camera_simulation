@@ -202,7 +202,7 @@ int main()
         cout<<" p "<< std::setw(5)<<camera.Pitch<<" y "<< std::setw(5)<<camera.Yaw<<std::flush;
 //=================================================================================================
 	//set projection and view of the model       
-	ourShader.setMat4("projection", projection);
+	    ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
         ourModel.Draw(ourShader);
 //================================================================================================        
@@ -352,7 +352,7 @@ void image_write(cv::Mat img, Camera camera,int i)
    std::fixed;
    std::setprecision(1);
    imagePath = FileSystem::getPath("resources/objects/human2/images/");
-   tempStream<<setfill('0')<<setw(4)<<i;
+   tempStream<<setfill('0')<<setw(4)<<i+6000;
    imageName = "Image_"+tempStream.str()+".jpg";
    
    infoStream << "xyzpyz "<<camera.Position.x<<'_'<<camera.Position.y<<'_'<<camera.Position.z<<'_'<<camera.Pitch<<'_'<<camera.Yaw<<'_'<<camera.Zoom;

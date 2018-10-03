@@ -67,7 +67,7 @@ int iter=0;
 int take=0;
 int captureFrame=0;
 	
-typedef matrix<double,5,1> input_sample;// sample measurement size is 5 samples as shown above
+typedef matrix<double,7,1> input_sample;// sample measurement size is 5 samples as shown above
 // decision function from dlib	
 typedef radial_basis_kernel<input_sample> kernel_type;
 decision_function<kernel_type> e_posX ;
@@ -80,7 +80,7 @@ param d;
 // hardcoded file paths
 string pathToHaar = "/home/user/opencv-3.4.1/data/haarcascades/";
 string pathTotestcsv = "/home/user/OBJ2IMG/resources/objects/human2/test_images/test.csv";
-string pathToDat = "/home/user/regression_selfi/build/saved_function_5k.dat";
+string pathToDat = "/home/user/regression_selfi/build/saved_function_4k.dat";//
 string pathToObj1 = FileSystem::getPath("resources/objects/human1/CMan0203.obj");
 string pathToObj2 = FileSystem::getPath("resources/objects/human2/CMan0206.obj");
 string pathToTestImages = FileSystem::getPath("resources/objects/human2/test_images/");
@@ -89,11 +89,12 @@ string wallTexturePath = FileSystem::getPath("resources/textures/image.JPG");
 string wallRightlTexturePath = FileSystem::getPath("resources/textures/brickwall.jpg");
 string wallLeftTexturePath = FileSystem::getPath("resources/textures/brickwall.jpg");
 string pathToTemplateImages = FileSystem::getPath("resources/objects/human2/template_images/data/");
+string pathToTemplateImagesSrc = FileSystem::getPath("resources/objects/human2/template_images/src/");
 
 
 //opencv declaration
 cv::Mat img(SCR_HEIGHT, SCR_WIDTH, CV_8UC3);
-cv::Mat templ(SCR_HEIGHT,SCR_WIDTH,CV_8UC3);// for template read
+cv::Mat templ;//(SCR_HEIGHT,SCR_WIDTH,CV_8UC3);// for template read
 //cv::Mat template_array[3];// create an array of template images
 //variable tos ave size and center of the model
 glm::vec3 Center;
@@ -107,6 +108,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 void image_write(cv::Mat img,int i);
 void image_show(cv::Mat img,int i);
+cv::Mat image_read(int i,bool path);
+int charToInt(const char* str);
 void takeMeTo_position(param d,decision_function<kernel_type> e_posZ,decision_function<kernel_type> e_posY,decision_function<kernel_type> e_posX,decision_function<kernel_type> e_pitch,decision_function<kernel_type> e_yaw);
 //=================================================
                 /*
@@ -134,11 +137,18 @@ int main(int argc, char** argv)
         return 0;
     }
     // read the template image
-    string template_image_1 = pathToTemplateImages + argv[1]; 
-    templ = cv::imread(template_image_1);
-    cout<<template_image_1<<endl;
-
-    d.desc1=0;d.desc2=0;d.desc3=0;d.desc4=0;d.desc5=0; // make desc to reset
+    
+    int imageNum =  charToInt(argv[1]);
+    //bool path = 
+    templ = image_read(imageNum,0);
+    namedWindow("Template", WINDOW_NORMAL);
+    imshow("Template",templ);
+    int key = cv::waitKey(0);
+    if (key==27)
+    destroyWindow("Template");
+    templ = image_read(imageNum,1);
+    
+    d.desc1=0;d.desc2=0;d.desc3=0;d.desc4=0;d.desc5=0; d.desc6=0;d.desc7=0; // make desc to reset
     if(templ.empty())
     {
         cout << "The argument is not a valid image . We use the predefined desc to estimate camera parameter when T is pressed" << endl;
@@ -146,18 +156,20 @@ int main(int argc, char** argv)
     }
     // read the features from the templates
     d =  find_parameters(templ,pathToHaar);
-    if(d.desc1==0 && d.desc2==0 && d.desc3==0 && d.desc4==0 && d.desc5==0) // check if face is detected, and return if No Face
-    {
-    std::cout<<"No Face detected"<<std::endl;
-    return 0;
-    }
+    //if(d.desc2==0 && d.desc3==0 && d.desc4==0 && d.desc5==0 && d.desc6==0 && d.desc7==0) // check if face is detected, and return if No Face
+    //{
+    //std::cout<<"No Face detected"<<std::endl;
+    //return 0;
+    //}
     // else cout the parameters and run the rest of simulation
     
     cout<<d.desc1;cout<<": ";
     cout<<d.desc2;cout<<": ";
     cout<<d.desc3;cout<<": ";
     cout<<d.desc4;cout<<": ";
-    cout<<d.desc5;cout<<endl;
+    cout<<d.desc5;cout<<": ";
+    cout<<d.desc6;cout<<": ";
+    cout<<d.desc7;cout<<endl;
 //=========================================================
     std::ofstream fs(pathTotestcsv);
     csv::csv_ostream csvs(fs);
@@ -165,6 +177,7 @@ int main(int argc, char** argv)
 //=========================================================
 //read the regressor parameters
     deserialize(pathToDat)>>e_posZ>>e_posY >>e_posX >> e_pitch >>e_yaw;// please check how they are save while serializing
+   // >> test_posZ>> test_posY >> test_posX >> test_pitch >> test_yaw; 
 //=========================================================
     
     // glfw: initialize and configure
@@ -310,8 +323,10 @@ int main(int argc, char** argv)
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;// time in second
         lastFrame = currentFrame;
+        // clear the screen to draw
         glClearColor(0.0f, 0.49f, 0.74117f, 1.0f);//0 127 189
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+        
         // process the input
         processInput(window);
         
@@ -333,14 +348,26 @@ int main(int argc, char** argv)
                 //
                 S(0,0) = d.desc1; S(1,0) = d.desc2;
                 S(2,0) = d.desc3; S(3,0) = d.desc4;
-                S(4,0) = d.desc5;
+                S(4,0) = d.desc5; S(5,0) = d.desc6;
+                S(6,0) = d.desc7;
+/*
+        S(0,0) =0.0190476;//						
+        S(1,0)= 0.267857;
+        S(2,0) = 0.0820312;	
+        S(3,0) =0.122449;	
+        S(4,0) =0.457143;
+        S(5,0) =  -0.178125;
+        S(6,0) = -0.227778;
+ */               
                 float z_final = e_posZ(S);
                 float y_final = e_posY(S);
                 float x_final = e_posX(S);
                 float pitch_final = e_pitch(S);
                 yaw = e_yaw(S);
-                
                 float delta = (0.1f);//velocity * (deltaTime);// delta is the distance per frame
+                int reach [10]= {0,0,0,0,0,0,0,0,0,0};
+                int reach_x=2;int reach_y=2; int reach_z=2; int reach_pitch=2;
+                
                 while(!glfwWindowShouldClose(window))
                 {
                     // very important to clear screen here
@@ -360,10 +387,11 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only x reached desired location
                                     
-                                    if(x<=x_final && y<=y_final && z<=z_final && pitch-0.2<pitch_final)
+                                    if(x<=x_final)
                                     {
-                                        take=0;
-                                        break;
+                                    
+                                        //cout<<"A"<<x<<endl;
+                                        reach[0]=1;
                                     }
                                 }
                 
@@ -380,10 +408,11 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only y reached desired location
                                     
-                                    if(x>=x_final && y>=y_final && z>=z_final && pitch+0.2>pitch_final)
+                                    if(x>=x_final)
                                     {
-                                        take=0;
-                                        break;
+                                        
+                                       // cout<<"B"<<x<<endl;
+                                        reach[1]=1;
                                     }
                                 }
                         }
@@ -399,10 +428,11 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only x reached desired location
                                     
-                                    if(x<=x_final && y<=y_final && z<=z_final && pitch-0.2<pitch_final)
+                                    if(y<=y_final)
                                     {
-                                        take=0;
-                                        break;
+                                        
+                                        //cout<<"C"<<x<<endl;
+                                        reach[2]=1;
                                     }
                                 }
                 
@@ -419,10 +449,11 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if ony y reached desired location
                                     
-                                    if(x>=x_final && y>=y_final && z>=z_final&& pitch+0.2>pitch_final)
+                                    if(y>=y_final)
                                     {
-                                        take=0;
-                                        break;
+                                        
+                                       // cout<<"D"<<x<<endl;
+                                        reach[3]=1;
                                     }
                                 }
                         }
@@ -438,10 +469,12 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only z reached desired location
                                     
-                                    if(x<=x_final && y<=y_final && z<=z_final&& pitch-0.2<pitch_final)
+                                    if(z<=z_final)
+                                        //
                                     {
-                                        take=0;
-                                        break;
+                                        
+                                        //cout<<"E"<<x<<endl;
+                                        reach[4]=1;
                                     }
                                 }
                 
@@ -458,10 +491,11 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only z reached desired location
                                     
-                                    if(x>=x_final && y>=y_final && z>=z_final&& pitch+0.2>pitch_final)
+                                    if(z>=z_final)
                                     {
-                                        take=0;
-                                        break;
+                                        
+                                       // cout<<"F"<<x<<endl;
+                                        reach[5]=1;
                                     }
                                 }
                         }
@@ -478,10 +512,11 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only z reached desired location
                                     
-                                    if(x<=x_final && y<=y_final && z<=z_final && (pitch-0.2)<pitch_final)
+                                    if(pitch<=pitch_final)
                                     {
-                                        take=0;
-                                        break;
+                                        
+                                        //cout<<"G"<<x<<endl;
+                                        reach[6]=1;
                                     }
                                 }
                 
@@ -498,14 +533,37 @@ int main(int argc, char** argv)
                                 {    
                                     //do nothing if only z reached desired location
                                     
-                                    if(x>=x_final && y>=y_final && z>=z_final && (pitch+0.2)>pitch_final)
+                                    if(pitch>=pitch_final)
                                     {
-                                        take=0;
-                                        break;
+                                        
+                                        //cout<<"H"<<x<<endl;
+                                        reach[7]=1;
                                     }
                                 }
-                        }   
-                                       
+                        }
+                        
+                        if (x_initial>x_final)
+                            reach_x=reach[0];
+                        else
+                            reach_x=reach[1];
+                        if (y_initial>y_final)
+                            reach_y=reach[2];
+                        else
+                            reach_y=reach[3];
+                        if (z_initial>z_final)
+                            reach_z=reach[4];
+                        else
+                            reach_z=reach[5];
+                        if (pitch_initial>pitch_final)
+                            reach_pitch=reach[6];
+                        else
+                            reach_pitch=reach[7];  
+                            
+                        if(reach_x==1 && reach_y==1 && reach_z==1)
+                        {
+                            take=0;
+                            break;                         
+                        }               
                         //=========================================
                         // don't forget to enable shader 1
                         ourShader2.use();
@@ -546,7 +604,21 @@ int main(int argc, char** argv)
                         cout<<" p "<< std::setw(5)<<camera.Pitch<<" y ";
                         cout<< std::setw(5)<<camera.Yaw;
                         cout<<" fps: " <<std::setw(3)<<(1/(deltaTime));
-                        cout<<std::flush;
+                        cout<<std::endl;
+                        //cout<<std::flush;
+                        
+                        // print x_final position
+                        std::cout << std::fixed;
+                        std::cout << std::setprecision(1);
+                        cout<<'\r'<<" x_final "<<std::setw(5)<< std::setfill('0');
+                        cout<<x_final<<" y_final "<< std::setw(5)<<y_final;
+                        cout<<" z_final "<< std::setw(5)<<z_final;
+                        cout<<" zoom "<< std::setw(5)<<camera.Zoom;
+                        cout<<" p "<< std::setw(5)<<pitch_final<<" y ";
+                        cout<< std::setw(5)<<yaw;
+                        //cout<<std::flush;
+                        cout<<std::endl;
+                        //-----------------------
                         
                         //cout<<"x "<<x_final<<"y"<<y_final<<"z"<<z_final<<"p"<<pitch_final;
                         //cout<<std::flush;
@@ -622,7 +694,7 @@ int main(int argc, char** argv)
 	            glReadPixels(0, 0, img.cols, img.rows, GL_BGR, GL_UNSIGNED_BYTE, img.data);
 	            cv::flip(img, img, 0);
 	            image_write(img,iter);
-	            param d_est =  find_parameters(img,pathToHaar);
+	            //param d_est =  find_parameters(img,pathToHaar);
 	            stringstream tempStream;
                 tempStream<<setfill('0')<<setw(4)<<iter;
                 string imageName = "Image_"+tempStream.str()+".jpg";
@@ -630,7 +702,7 @@ int main(int argc, char** argv)
                 std::cout << std::setprecision(1);
                 csvs<<imageName<<camera.Position.x<<camera.Position.y<<camera.Position.z;
                 csvs<<camera.Zoom<<camera.Pitch<<camera.Yaw;
-                csvs<<d_est.desc1<<d_est.desc2<<d_est.desc3<<d_est.desc4<<d_est.desc5;//d.desc1
+                //csvs<<d_est.desc1<<d_est.desc2<<d_est.desc3<<d_est.desc4<<d_est.desc5;//d.desc1
                 csvs<<csv::endl;
                 iter++;
                 captureFrame =0;
@@ -771,6 +843,7 @@ void takeMeTo_position(param d,decision_function<kernel_type> e_posZ,decision_fu
     input_sample S;
     //
     S(0,0) = d.desc1;S(1,0) = d.desc2;S(2,0) = d.desc3;S(3,0) = d.desc4;S(4,0) = d.desc5;	
+    S(5,0) = d.desc6; S(6,0) = d.desc7;
     float z = e_posZ(S);
     float y = e_posY(S);
     float x = e_posX(S);
@@ -794,7 +867,57 @@ void takeMeTo_position(param d,decision_function<kernel_type> e_posZ,decision_fu
     return 0;
    }
  }
+//=========================================
+// A function to read an image from a specified path if path is zero it can read from one path if path is one
+// it can read from another path
+cv::Mat image_read(int i,bool path)
+{
+   string imagePath, imageName, saveImage;
+   stringstream tempStream;
+   if(path==1)
+   {
+    imagePath = pathToTemplateImages;// to change template path see the variable declaration
+    tempStream<<setfill('0')<<setw(4)<<i;
+    imageName = "Image_"+tempStream.str()+".png";
+   }
+   else
+   {
+    imagePath = pathToTemplateImagesSrc;
+    tempStream<<setfill('0')<<setw(4)<<i;
+    imageName = "Image_"+tempStream.str()+".JPG";
+   }
+
+   saveImage = imagePath+imageName;
+   cv::Mat temp = imread(saveImage);
+   return temp;
+}
+
+//====================================================
+
+int charToInt(const char* str)
+{
+
+char *p;
+int num;
+
+errno = 0;
+long conv = strtol(str, &p, 10);
+
+// Check for errors: e.g., the string does not represent an integer
+// or the integer is larger than int
+if (errno != 0 || *p != '\0' || conv > INT_MAX) 
+{
+    // Put here the handling of the error, like exiting the program with
+    // an error message
+} 
+else 
+{
+    // No error
+    num = conv;    
+    return num;
+}
+
+}
 
 
-
-
+//=====================================================
